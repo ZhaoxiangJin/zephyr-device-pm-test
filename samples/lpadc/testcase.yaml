@@ -1,0 +1,34 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+common:
+  tags:
+    - pm
+    - adc
+    - drivers
+  platform_allow:
+    - frdm_mcxn947/mcxn947/cpu0
+  harness: console
+  harness_config:
+    type: multi_line
+    ordered: false
+    regex:
+      - "PM-TEST: RESULT PASS"
+    fail_on_fault: true
+
+tests:
+  sample.pm.lpadc.baseline:
+    # default prj.conf, no PM
+
+  sample.pm.lpadc.device:
+    extra_args:
+      - EXTRA_CONF_FILE=overlay-pm-device.conf
+
+  sample.pm.lpadc.runtime:
+    extra_args:
+      - EXTRA_CONF_FILE=overlay-pm-runtime.conf
+
+  sample.pm.lpadc.system:
+    extra_args:
+      - EXTRA_CONF_FILE=overlay-pm-system.conf
+      - DTC_OVERLAY_FILE="app.overlay;constraints.overlay"

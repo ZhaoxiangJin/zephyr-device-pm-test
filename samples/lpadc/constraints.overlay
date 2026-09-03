@@ -1,0 +1,15 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * System-PM constraint layer: mark which SoC power states cut power to the
+ * LPADC. When the driver holds a conversion lock, the PM policy must not pick
+ * one of these states. Layered on top of app.overlay for the system phase.
+ *
+ * On MCXN947 the ADC analog block loses power in powerdown/deeppowerdown; sleep
+ * and deepsleep retain it. Adjust per real project characterization.
+ */
+
+&lpadc0 {
+	zephyr,disabling-power-states = <&powerdown &deeppowerdown>;
+};
