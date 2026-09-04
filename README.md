@@ -8,13 +8,16 @@ This project builds one focused sample per driver that drives the driver through
 PM state machine and reports, in a greppable format, whether each transition behaves.
 
 - **Reference target board:** `frdm_mcxn947/mcxn947/cpu0` (NXP FRDM-MCXN947).
-- **First case:** LPADC (`nxp,lpadc`, driver `drivers/adc/adc_mcux_lpadc.c`).
+- **Cases so far:**
+  - LPADC (`nxp,lpadc`, driver `drivers/adc/adc_mcux_lpadc.c`)
+  - LPCMP (`nxp,lpcmp`, driver `drivers/comparator/comparator_nxp_lpcmp.c`)
 
 ## Layout
 
 ```
 samples/
   lpadc/            # LPADC device-PM test (first case)
+  lpcmp/            # LPCMP comparator device-PM test
 scripts/            # build/flash helpers
 ```
 
@@ -60,24 +63,47 @@ west flash
 
 Or use the helper: `scripts/run_lpadc.sh <baseline|device|runtime|system>`.
 
+The LPCMP case follows the same four layers — swap `samples/lpadc` for `samples/lpcmp`,
+or use `scripts/run_lpcmp.sh <baseline|device|runtime|system> [--loopback] [--flash]`.
+
 ## Reading the output
 
 Every phase prints a line prefixed `PM-TEST:`. A run ends with either
 `PM-TEST: RESULT PASS` or `PM-TEST: RESULT FAIL`. Twister (`testcase.yaml`) keys off
 these strings, so no debugger is needed to judge a run.
 
+A `RESULT FAIL` is a legitimate, informative outcome: it usually means the harness found
+a real driver defect, not that the harness is broken. Each sample's README states which
+layers are expected to fail today and why, so a driver fix is visible as those layers
+turning green.
+
+## Watch out for: runtime PM has to be *enabled*, not just compiled in
+
+`CONFIG_PM_DEVICE_RUNTIME=y` on its own is not enough to test anything.
+`pm_device_driver_init()` only leaves a device SUSPENDED and marks runtime PM enabled for
+it when `CONFIG_PM_DEVICE_RUNTIME_DEFAULT_ENABLE=y` or the node carries
+`zephyr,pm-device-runtime-auto`. Without one of those, the device is resumed to ACTIVE,
+runtime PM stays *disabled* for it, and `pm_device_runtime_get()`/`put()` return 0
+without doing anything — a runtime phase that passes while exercising nothing. The LPCMP
+overlays set `CONFIG_PM_DEVICE_RUNTIME_DEFAULT_ENABLE=y` for this reason;
+`samples/lpadc/overlay-pm-runtime.conf` predates this finding and still needs it.
+
 ## Adding a new driver case
 
-1. `cp -r samples/lpadc samples/<driver>`.
-2. Point the DT node / io-channels at the new peripheral; adjust `prj.conf` (`CONFIG_<DRIVER>=y`).
-3. Rewrite `src/main.c` `exercise_device()` to perform one real, observable operation on the
-   driver (a read, a transfer, a toggle) so that "device suspended" vs "device active" is
-   distinguishable at runtime.
-4. Keep the four PM overlays (`device`, `runtime`, `system`) — they are driver-agnostic.
+1. `cp -r samples/lpcmp samples/<driver>` (or `samples/lpadc`).
+2. Point the DT node at the new peripheral; adjust `prj.conf` (`CONFIG_<DRIVER>=y`).
+3. Rewrite the `exercise_*()` / phase bodies to perform one real, observable operation on
+   the driver (a read, a transfer, a toggle) so that "device suspended" vs "device
+   active" is distinguishable at runtime. If the driver's API cannot fail on a suspended
+   device — which is common — assert on the peripheral register the PM callback touches,
+   the way `samples/lpcmp` checks `CCR0.CMP_EN`.
+4. Keep the PM overlays (`device`, `runtime`, `system`) — they are driver-agnostic.
 5. Update `testcase.yaml`.
 
-## What the LPADC case verifies
+## What each case verifies
 
-See `samples/lpadc/README.md` for the per-phase expectations, including the notable finding
-that the LPADC driver's read path does **not** call `pm_device_runtime_get/put`, so a caller
-must wrap reads itself when runtime PM is enabled.
+- `samples/lpadc/README.md` — notably that the LPADC read path does **not** call
+  `pm_device_runtime_get/put`, so a caller must wrap reads itself when runtime PM is on.
+- `samples/lpcmp/README.md` — two driver defects: the comparator boots with
+  `CCR0.CMP_EN` set while PM reports SUSPENDED, and `set_trigger_callback()` re-enables a
+  suspended comparator behind PM's back.

@@ -1,0 +1,20 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * System-PM constraint layer: declare which SoC power states cut power to the
+ * comparator, so the PM policy must not pick one of them while something holds a
+ * pm_policy_device_power_lock on the node. Layered on top of app.overlay.
+ *
+ * On MCXN947, boards/nxp/frdm_mcxn947/board.c enables the CMP0 analog block for
+ * *active* mode only -- it calls SPC_EnableActiveModeAnalogModules() and never
+ * SPC_EnableLowPowerModeAnalogModules() -- so the comparator loses its analog bias
+ * from deep sleep downwards. Plain 'sleep' only gates the core clock and is therefore
+ * not listed. Adjust per real project characterization; a design that sets
+ * enable-stop-mode and picks a FRO_16K/XTAL32K function clock keeps the comparator
+ * alive in stop modes and would list fewer states here.
+ */
+
+&lpcmp0 {
+	zephyr,disabling-power-states = <&deepsleep &powerdown &deeppowerdown>;
+};

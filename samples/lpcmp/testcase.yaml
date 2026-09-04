@@ -1,0 +1,44 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: the 'runtime' and 'system' cases are expected to FAIL against the current
+# driver -- nxp_lpcmp_init() enables CCR0.CMP_EN before pm_device_driver_init(), so the
+# comparator boots powered up while PM reports SUSPENDED. The 'device' case is expected
+# to fail one check too (set_trigger_callback re-enables a suspended comparator). Both
+# are real driver defects; see README.md. Keeping the PASS regex uniform means a driver
+# fix shows up as these cases turning green.
+#
+# The GPIO loopback layer is not listed here: it needs a jumper between J2-11 and
+# J2-17, so it is a manual run (see README.md).
+
+common:
+  tags:
+    - pm
+    - comparator
+    - drivers
+  platform_allow:
+    - frdm_mcxn947/mcxn947/cpu0
+  harness: console
+  harness_config:
+    type: multi_line
+    ordered: false
+    regex:
+      - "PM-TEST: RESULT PASS"
+    fail_on_fault: true
+
+tests:
+  sample.pm.lpcmp.baseline:
+    # default prj.conf, no PM
+
+  sample.pm.lpcmp.device:
+    extra_args:
+      - EXTRA_CONF_FILE=overlay-pm-device.conf
+
+  sample.pm.lpcmp.runtime:
+    extra_args:
+      - EXTRA_CONF_FILE=overlay-pm-runtime.conf
+
+  sample.pm.lpcmp.system:
+    extra_args:
+      - EXTRA_CONF_FILE=overlay-pm-system.conf
+      - DTC_OVERLAY_FILE="app.overlay;constraints.overlay"

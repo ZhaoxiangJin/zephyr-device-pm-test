@@ -1,0 +1,20 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+config PM_TEST_LPCMP_LOOPBACK
+	bool "GPIO loopback functional layer"
+	select GPIO
+	help
+	  Drive the comparator's positive input from a GPIO and assert on the
+	  comparator's actual output, instead of only inspecting CCR0.CMP_EN.
+
+	  This is the only layer that proves a SUSPEND really stopped the analog
+	  comparison rather than merely flipping a register bit, but it needs a
+	  jumper wire on FRDM-MCXN947 between:
+
+	      J2-11 (PIO1_12, gpio1 pin 12)  ->  J2-17 (PIO1_0, CMP0_IN0)
+
+	  Same wiring as tests/drivers/comparator/gpio_loopback. Off by default so
+	  that every other layer runs with no external wiring at all.
+
+source "Kconfig.zephyr"
