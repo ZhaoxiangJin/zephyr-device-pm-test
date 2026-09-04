@@ -140,6 +140,15 @@ static void phase_baseline(void)
 	int err;
 
 	printk("PM-TEST: phase baseline\n");
+
+#if defined(CONFIG_PM_DEVICE_RUNTIME)
+	/* Runtime PM is genuinely enabled here, so the device boots SUSPENDED and this
+	 * driver takes no runtime reference of its own. The control read therefore has to
+	 * hold one; the unwrapped case is what phase_runtime_pm() documents on purpose.
+	 */
+	err = pm_device_runtime_get(LPADC_DEV);
+	PM_TEST_CHECK(err == 0, "runtime_get for baseline read");
+#endif
 	err = exercise_read(&raw);
 	PM_TEST_CHECK(err == 0, "baseline read succeeds");
 	if (err == 0) {
@@ -147,6 +156,9 @@ static void phase_baseline(void)
 	} else {
 		printk("PM-TEST: baseline read err %d\n", err);
 	}
+#if defined(CONFIG_PM_DEVICE_RUNTIME)
+	(void)pm_device_runtime_put(LPADC_DEV);
+#endif
 }
 
 /* ---- Phase: manual device PM (CONFIG_PM_DEVICE) -------------------------- */

@@ -100,10 +100,17 @@ west build -b $BOARD . -p always
   so an unwrapped read does not auto-resume the device. The test logs this
   unwrapped read, then shows the correct pattern: `runtime_get` → read →
   `runtime_put`, with state going ACTIVE then back to SUSPENDED.
-- **Caveat:** this overlay does not yet set `CONFIG_PM_DEVICE_RUNTIME_DEFAULT_ENABLE=y`,
-  so runtime PM is compiled in but not enabled for the device and the get/put calls are
-  no-ops. See the top-level README section "runtime PM has to be *enabled*, not just
-  compiled in".
+> This overlay also sets `CONFIG_PM_DEVICE_RUNTIME_DEFAULT_ENABLE=y`, which is
+> **required**, not cosmetic. With `CONFIG_PM_DEVICE_RUNTIME=y` alone,
+> `pm_device_driver_init()` resumes the device to ACTIVE and leaves runtime PM *disabled*
+> for it; `pm_device_runtime_get()`/`put()` then return 0 without doing anything, and the
+> whole phase would pass while testing nothing. The alternative is
+> `zephyr,pm-device-runtime-auto` on the DT node.
+>
+> Because of this the shared baseline phase wraps its control read in
+> `pm_device_runtime_get()`/`put()` when runtime PM is on — the device boots SUSPENDED and
+> this driver takes no reference of its own, so an unwrapped read there would fail for
+> exactly the reason this phase exists to document.
 
 ### System PM + constraints — `overlay-pm-system.conf` + `constraints.overlay`
 ```

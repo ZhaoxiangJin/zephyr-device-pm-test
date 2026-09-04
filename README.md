@@ -119,9 +119,14 @@ turning green.
 it when `CONFIG_PM_DEVICE_RUNTIME_DEFAULT_ENABLE=y` or the node carries
 `zephyr,pm-device-runtime-auto`. Without one of those, the device is resumed to ACTIVE,
 runtime PM stays *disabled* for it, and `pm_device_runtime_get()`/`put()` return 0
-without doing anything — a runtime phase that passes while exercising nothing. The LPCMP
-overlays set `CONFIG_PM_DEVICE_RUNTIME_DEFAULT_ENABLE=y` for this reason;
-`samples/lpadc/overlay-pm-runtime.conf` predates this finding and still needs it.
+without doing anything — a runtime phase that passes while exercising nothing. Every
+case's runtime and system overlays therefore set
+`CONFIG_PM_DEVICE_RUNTIME_DEFAULT_ENABLE=y`.
+
+A knock-on effect worth knowing when you write a new case: once runtime PM is genuinely
+enabled, the device boots SUSPENDED, so any unconditional sanity read in a shared
+baseline phase has to be wrapped in `pm_device_runtime_get()`/`put()` — otherwise the
+control check fails for exactly the reason the runtime phase is there to document.
 
 ## Adding a new driver case
 
