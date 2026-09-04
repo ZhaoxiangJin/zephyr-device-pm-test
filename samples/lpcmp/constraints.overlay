@@ -4,13 +4,18 @@
  *
  * System-PM constraint layer: declare which SoC power states cut power to the
  * comparator, so the PM policy must not pick one of them while something holds a
- * pm_policy_device_power_lock on the node. Layered on top of app.overlay.
+ * pm_policy_device_power_lock on the node. Stacked on top of the per-board overlay
+ * in boards/ for the system phase (via EXTRA_DTC_OVERLAY_FILE, so the board overlay
+ * is still picked up automatically).
  *
- * On MCXN947, boards/nxp/frdm_mcxn947/board.c enables the CMP0 analog block for
- * *active* mode only -- it calls SPC_EnableActiveModeAnalogModules() and never
- * SPC_EnableLowPowerModeAnalogModules() -- so the comparator loses its analog bias
- * from deep sleep downwards. Plain 'sleep' only gates the core clock and is therefore
- * not listed. Adjust per real project characterization; a design that sets
+ * Every MCXN and MCXA SoC declares the same four power states -- sleep, deepsleep,
+ * powerdown, deeppowerdown -- so this file is family-wide.
+ *
+ * The NXP board files enable the CMP0 analog block for *active* mode only: they call
+ * SPC_EnableActiveModeAnalogModules() and never
+ * SPC_EnableLowPowerModeAnalogModules(), so the comparator loses its analog bias from
+ * deep sleep downwards. Plain 'sleep' only gates the core clock and is therefore not
+ * listed. Adjust per real project characterization; a design that sets
  * enable-stop-mode and picks a FRO_16K/XTAL32K function clock keeps the comparator
  * alive in stop modes and would list fewer states here.
  */

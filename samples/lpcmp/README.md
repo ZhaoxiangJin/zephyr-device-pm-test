@@ -1,7 +1,7 @@
 # LPCMP device-PM test
 
 Exercises the power-management hooks of the NXP LPCMP driver
-(`drivers/comparator/comparator_nxp_lpcmp.c`) on `frdm_mcxn947/mcxn947/cpu0`.
+(`drivers/comparator/comparator_nxp_lpcmp.c`) across the MCXN and MCXA families.
 
 A single `src/main.c` runs different phases depending on which PM Kconfigs are enabled
 by the overlay you build with. Every phase prints `PM-TEST:` lines and the run ends with
@@ -23,10 +23,11 @@ value with no error. An API-level test alone therefore cannot tell a working PM 
 from a no-op.
 
 So the test asserts on **`CCR0.CMP_EN` read straight out of the peripheral**. The address
-comes from `DT_REG_ADDR()` rather than a literal — the node's `reg` is `0x51000` and the
-`soc/peripheral` parent translates it, giving `0x50051000` on this secure target
-(`0x40051000` on the `_ns` variant), with `CCR0` at offset `0x8`. `main()` prints the
-resolved address at startup. The state and the bit are printed together on every
+comes from `DT_REG_ADDR()` rather than a literal, so the same source works on every
+board: on MCXN947 cpu0 the node's `reg` is `0x51000` and the `soc/peripheral` parent
+translates it to `0x50051000`, while the MCXA parts place LPCMP0 elsewhere entirely.
+`CCR0` is at offset `0x8` on all of them. `main()` prints the resolved address at
+startup. The state and the bit are printed together on every
 transition:
 
 ```
@@ -64,15 +65,39 @@ layers report `RESULT FAIL` today**. That is the point of the harness: a driver 
 up as those runs turning into `RESULT PASS`. Only `baseline` should pass as-is.
 
 A third, non-PM observation: the driver never calls `pinctrl_apply_state()` even though
-its binding includes `pinctrl-device.yaml`, so `pinctrl-0` in `app.overlay` has no
+its binding includes `pinctrl-device.yaml`, so `pinctrl-0` in the board overlay has no
 effect. In particular the `bias-pull-up` in `&pinmux_lpcmp0` is not applied, which is
 why no layer asserts on the comparator's output *value* unless the loopback layer is on.
 
+## Boards
+
+`boards/<board_target>.overlay` is applied automatically by Zephyr from the board target
+name. Each one sets `&lpcmp0` to `okay` (no board dts enables it by default), selects the
+positive mux input, and names the GPIO used by the optional loopback layer. The values
+are copied from `tests/drivers/comparator/gpio_loopback/boards/`, so the wiring is
+already documented and validated.
+
+| Board target | Positive input | DAC | Loopback GPIO |
+| --- | --- | --- | --- |
+| `frdm_mcxn947/mcxn947/cpu0` (+ `/qspi`) | IN0, J2-17 | 127 of VREFH1 | `gpio1` 12, J2-11 |
+| `frdm_mcxn236` | IN0, J2-8 | 127 of VREFH1 | `gpio1` 2, J2-10 |
+| `mcx_n9xx_evk/mcxn947/cpu0` (+ `/qspi`) | IN0, J2-17 | 127 of VREFH1 | `gpio1` 1, J2-15 |
+| `mcx_n5xx_evk/mcxn547/cpu0` | IN0, J2-17 | 127 of VREFH1 | `gpio1` 1, J2-15 |
+| `frdm_mcxa153` | IN0, J2-9 | 127 of VREFH1 | `gpio1` 5, J2-3 |
+| `frdm_mcxa156` | IN0, J2-9 | 127 of VREFH1 | `gpio1` 4, J2-1 |
+| `frdm_mcxa266` | IN1, J2-17 | 127 of VREFH1 | `gpio1` 4, J2-7 |
+| `frdm_mcxa344` | IN1, J2-17 | 127 of VREFH1 | `gpio1` 4, J2-7 |
+| `frdm_mcxa346` | IN1, J2-17 | 127 of VREFH1 | `gpio1` 4, J2-7 |
+| `frdm_mcxa366` | IN1, J2-17 | 127 of VREFH1 | `gpio1` 4, J2-7 |
+| `frdm_mcxa577` | IN2, P1_4 (R132) | 160 of VREFH0 | `gpio0` 19, P0_19 (J6-1) |
+
 ## Phases & expectations
+
+Substitute any board target from the table for `$BOARD`.
 
 ### Baseline — `prj.conf` (no PM)
 ```sh
-west build -b frdm_mcxn947/mcxn947/cpu0 . -p always
+west build -b $BOARD . -p always
 ```
 Control layer. `get_output()` returns a valid level, `set_trigger()` /
 `trigger_is_pending()` work, `CMP_EN` is set. If this fails, the sample or board setup
@@ -112,14 +137,16 @@ is wrong, not the PM code.
 
 ### System PM + constraints — `overlay-pm-system.conf` + `constraints.overlay`
 ```sh
-... -- "-DEXTRA_CONF_FILE=overlay-pm-system.conf" \
-       "-DDTC_OVERLAY_FILE=app.overlay;constraints.overlay"
+... -- -DEXTRA_CONF_FILE=overlay-pm-system.conf \
+       -DEXTRA_DTC_OVERLAY_FILE=constraints.overlay
 ```
 - `constraints.overlay` adds `zephyr,disabling-power-states = <&deepsleep &powerdown
-  &deeppowerdown>` to `&lpcmp0`. Rationale: `boards/nxp/frdm_mcxn947/board.c` enables
-  the CMP0 analog block for active mode only (`SPC_EnableActiveModeAnalogModules()`,
-  never `SPC_EnableLowPowerModeAnalogModules()`), so the comparator loses its bias from
-  deep sleep downwards. Plain `sleep` only gates the core clock, so it is not listed.
+  &deeppowerdown>` to `&lpcmp0`. Rationale: the NXP board files enable the CMP0 analog
+  block for active mode only (`SPC_EnableActiveModeAnalogModules()`, never
+  `SPC_EnableLowPowerModeAnalogModules()`), so the comparator loses its bias from deep
+  sleep downwards. Plain `sleep` only gates the core clock, so it is not listed. All
+  MCXN/MCXA SoCs declare these same four power-state labels, so one file covers the
+  whole family.
 - unlike the LPADC driver, the LPCMP driver never calls
   `pm_policy_device_power_lock_get()` itself, so the application has to hold the lock
   for as long as it needs the comparator output. The phase prints this.
@@ -127,12 +154,16 @@ is wrong, not the PM code.
 
 ### Optional GPIO loopback (`CONFIG_PM_TEST_LPCMP_LOOPBACK`)
 
-Requires a jumper wire — same wiring as
-`tests/drivers/comparator/gpio_loopback`:
+Requires a jumper wire between the loopback GPIO and the positive input listed in the
+board table above — same wiring as `tests/drivers/comparator/gpio_loopback`:
 
 ```
 FRDM-MCXN947   J2-11 (PIO1_12, gpio1.12)  ---->  J2-17 (PIO1_0, CMP0_IN0)
+FRDM-MCXA153   J2-3  (gpio1.5)            ---->  J2-9  (CMP0_IN0)
 ```
+
+The exact two pins for any supported board are named in the header comment of
+`boards/<board_target>.overlay`.
 
 Stack it on any PM layer:
 
@@ -149,7 +180,7 @@ with a wiring message, so a missing jumper cannot be mistaken for a driver defec
 ## Helper
 
 ```sh
-scripts/run_lpcmp.sh <baseline|device|runtime|system> [--loopback] [--flash]
+scripts/run_lpcmp.sh <baseline|device|runtime|system> [-b BOARD] [--loopback] [--flash]
 ```
 
 ## Notes / follow-ups
@@ -160,5 +191,6 @@ scripts/run_lpcmp.sh <baseline|device|runtime|system> [--loopback] [--flash]
 - The driver's `enable-stop-mode` property plus a `FRO_16K`/`XTAL32K` function clock
   would keep the comparator running in stop modes, which would change what belongs in
   `zephyr,disabling-power-states`. Not exercised here.
-- `app.overlay` is applied automatically; the system layer must list it explicitly
-  alongside `constraints.overlay` in `DTC_OVERLAY_FILE`.
+- Use `EXTRA_DTC_OVERLAY_FILE` (additive) rather than `DTC_OVERLAY_FILE` for the system
+  layer — setting `DTC_OVERLAY_FILE` would suppress the automatic `boards/` lookup.
+- Not covered: the `cpu1` clusters and the `_ns`/TrustZone board variants.

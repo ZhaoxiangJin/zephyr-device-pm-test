@@ -4,10 +4,14 @@
  *
  * System-PM constraint layer: mark which SoC power states cut power to the
  * LPADC. When the driver holds a conversion lock, the PM policy must not pick
- * one of these states. Layered on top of app.overlay for the system phase.
+ * one of these states. Stacked on top of the per-board overlay in boards/ for
+ * the system phase (via EXTRA_DTC_OVERLAY_FILE, so the board overlay is still
+ * picked up automatically).
  *
- * On MCXN947 the ADC analog block loses power in powerdown/deeppowerdown; sleep
- * and deepsleep retain it. Adjust per real project characterization.
+ * Every MCXN and MCXA SoC declares the same four power states -- sleep,
+ * deepsleep, powerdown, deeppowerdown -- so this file is family-wide. The ADC
+ * analog block loses power in powerdown/deeppowerdown; sleep and deepsleep
+ * retain it. Adjust per real project characterization.
  */
 
 &lpadc0 {

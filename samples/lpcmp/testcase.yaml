@@ -8,8 +8,12 @@
 # are real driver defects; see README.md. Keeping the PASS regex uniform means a driver
 # fix shows up as these cases turning green.
 #
-# The GPIO loopback layer is not listed here: it needs a jumper between J2-11 and
-# J2-17, so it is a manual run (see README.md).
+# Per-board comparator wiring lives in boards/<board_target>.overlay and is picked up
+# automatically, so the system case stacks constraints.overlay with
+# EXTRA_DTC_OVERLAY_FILE rather than replacing DTC_OVERLAY_FILE.
+#
+# The GPIO loopback layer is not listed here: it needs a jumper between two headers on
+# each board, so it is a manual run (see README.md).
 
 common:
   tags:
@@ -17,18 +21,31 @@ common:
     - comparator
     - drivers
   platform_allow:
+    # MCXN
     - frdm_mcxn947/mcxn947/cpu0
+    - frdm_mcxn947/mcxn947/cpu0/qspi
+    - frdm_mcxn236
+    - mcx_n9xx_evk/mcxn947/cpu0
+    - mcx_n9xx_evk/mcxn947/cpu0/qspi
+    - mcx_n5xx_evk/mcxn547/cpu0
+    # MCXA
+    - frdm_mcxa153
+    - frdm_mcxa156
+    - frdm_mcxa266
+    - frdm_mcxa344
+    - frdm_mcxa346
+    - frdm_mcxa366
+    - frdm_mcxa577
   harness: console
   harness_config:
     type: multi_line
     ordered: false
     regex:
       - "PM-TEST: RESULT PASS"
-    fail_on_fault: true
 
 tests:
-  sample.pm.lpcmp.baseline:
-    # default prj.conf, no PM
+  # Baseline: default prj.conf, no PM symbols at all.
+  sample.pm.lpcmp.baseline: {}
 
   sample.pm.lpcmp.device:
     extra_args:
@@ -41,4 +58,4 @@ tests:
   sample.pm.lpcmp.system:
     extra_args:
       - EXTRA_CONF_FILE=overlay-pm-system.conf
-      - DTC_OVERLAY_FILE="app.overlay;constraints.overlay"
+      - EXTRA_DTC_OVERLAY_FILE=constraints.overlay

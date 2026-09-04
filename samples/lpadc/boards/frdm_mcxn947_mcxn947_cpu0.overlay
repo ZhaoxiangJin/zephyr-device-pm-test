@@ -2,11 +2,16 @@
  * Copyright 2026 NXP
  * SPDX-License-Identifier: Apache-2.0
  *
- * LPADC channel setup for the device-PM test on FRDM-MCXN947.
- * Single-ended read on CH0A against the internal Vref (1.8V). No external
- * wiring is required to observe a conversion completing; absolute accuracy is
- * not what this test checks -- only that a conversion succeeds vs. fails across
- * PM transitions.
+ * LPADC channel setup for the device-PM test on FRDM-MCXN947 (cpu0).
+ *
+ * Single-ended read on CH0A against the on-chip Vref (1.8 V). No external wiring
+ * is required to observe a conversion completing; absolute accuracy is not what
+ * this test checks -- only that a conversion succeeds vs. fails across PM
+ * transitions, so a floating input is fine.
+ *
+ * The board dts already sets &lpadc0 and &vref to "okay" and applies
+ * pinmux_lpadc0, so this overlay only adds the channel and pins Vref to
+ * high-power mode (matching samples/drivers/adc/adc_dt).
  */
 
 #include <zephyr/dt-bindings/adc/adc.h>
@@ -19,6 +24,7 @@
 	};
 };
 
+/* Vref output is the LPADC reference voltage. */
 &vref {
 	regulator-initial-mode = <NXP_VREF_MODE_HIGH_POWER>;
 };

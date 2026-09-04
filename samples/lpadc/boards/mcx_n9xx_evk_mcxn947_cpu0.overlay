@@ -1,0 +1,45 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * LPADC channel setup for the device-PM test on MCX-N9XX-EVK (cpu0).
+ *
+ * Single-ended read on CH0A against the on-chip Vref (1.8 V). No external wiring
+ * is required to observe a conversion completing; absolute accuracy is not what
+ * this test checks -- only that a conversion succeeds vs. fails across PM
+ * transitions, so a floating input is fine.
+ *
+ * The board dts already sets &lpadc0 and &vref to "okay" and applies
+ * pinmux_lpadc0, so this overlay only adds the channel and pins Vref to
+ * high-power mode (matching samples/drivers/adc/adc_dt).
+ */
+
+#include <zephyr/dt-bindings/adc/adc.h>
+#include <zephyr/dt-bindings/adc/mcux-lpadc.h>
+#include <zephyr/dt-bindings/regulator/nxp_vref.h>
+
+/ {
+	zephyr,user {
+		io-channels = <&lpadc0 0>;
+	};
+};
+
+/* Vref output is the LPADC reference voltage. */
+&vref {
+	regulator-initial-mode = <NXP_VREF_MODE_HIGH_POWER>;
+};
+
+&lpadc0 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	channel@0 {
+		reg = <0>;
+		zephyr,gain = "ADC_GAIN_1";
+		zephyr,reference = "ADC_REF_EXTERNAL1";
+		zephyr,vref-mv = <1800>;
+		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,resolution = <12>;
+		zephyr,input-positive = <MCUX_LPADC_CH0A>;
+	};
+};

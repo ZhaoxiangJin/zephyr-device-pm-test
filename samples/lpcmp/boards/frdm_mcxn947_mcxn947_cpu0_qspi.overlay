@@ -1,0 +1,9 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The qspi board variant of FRDM-MCXN947 only changes where the image is linked; the
+ * comparator wiring is identical to the cpu0 target.
+ */
+
+#include "frdm_mcxn947_mcxn947_cpu0.overlay"

@@ -1,0 +1,45 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * LPCMP setup for the device-PM test on FRDM-MCXA156.
+ *
+ * Positive input is CMP0_IN0 (FRDM-MCXA156 J2-9), negative input is the internal 8-bit DAC at
+ * 127/255 of VREFH1. Copied from
+ * tests/drivers/comparator/gpio_loopback/boards/frdm_mcxa156.overlay so the
+ * optional loopback layer uses already-documented wiring.
+ *
+ * Setting &lpcmp0 to "okay" is what makes the board's board.c attach a function clock
+ * to CMP0 and call SPC_EnableActiveModeAnalogModules() for the comparator and its DAC,
+ * so the application needs no clock or SPC setup of its own.
+ *
+ * NOTE: pinctrl-0 is inert here -- drivers/comparator/comparator_nxp_lpcmp.c never
+ * calls pinctrl_apply_state(), even though its binding includes pinctrl-device.yaml.
+ * It is kept to express intent. The practical consequence is that the positive input
+ * gets no bias-pull, so its level is indeterminate unless something drives it; that is
+ * why no layer asserts on the comparator's output *value* unless the GPIO loopback
+ * layer is enabled.
+ */
+
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+/ {
+	aliases {
+		test-comp = &lpcmp0;
+	};
+
+	zephyr,user {
+		/* Only used when CONFIG_PM_TEST_LPCMP_LOOPBACK=y: FRDM-MCXA156 J2-1. */
+		test-gpios = <&gpio1 4 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+&lpcmp0 {
+	status = "okay";
+	pinctrl-0 = <&pinmux_lpcmp0>;
+	pinctrl-names = "default";
+	positive-mux-input = "IN0";	/* FRDM-MCXA156 J2-9 */
+	negative-mux-input = "DAC";
+	dac-value = <127>;
+	dac-vref-source = "VREFH1";
+};

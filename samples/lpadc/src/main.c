@@ -84,6 +84,7 @@ static int exercise_read(int32_t *out_raw)
 	return 0;
 }
 
+#if defined(CONFIG_PM_DEVICE)
 static const char *pm_state_str(enum pm_device_state st)
 {
 	switch (st) {
@@ -111,6 +112,9 @@ static void report_state(const char *when)
 	}
 	printk("PM-TEST: state(%s) = %s\n", when, pm_state_str(st));
 }
+#endif /* CONFIG_PM_DEVICE -- only the PM phases query state, and twister builds
+	* with -Werror=unused-function.
+	*/
 
 static int setup_channels(void)
 {

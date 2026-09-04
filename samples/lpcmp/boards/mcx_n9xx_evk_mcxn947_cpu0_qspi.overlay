@@ -1,0 +1,9 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The qspi board variant of MCX-N9XX-EVK only changes where the image is linked; the
+ * comparator wiring is identical to the cpu0 target.
+ */
+
+#include "mcx_n9xx_evk_mcxn947_cpu0.overlay"

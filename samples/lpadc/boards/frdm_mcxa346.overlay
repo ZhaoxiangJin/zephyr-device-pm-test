@@ -1,0 +1,60 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * LPADC channel setup for the device-PM test on FRDM-MCXA346.
+ *
+ * MCXA has no on-chip Vref regulator node, so the reference is the external
+ * VREFH pin (VDD, 3.3 V) and the channel is the one the board already pinmuxes:
+ * CH7A (J4 pin 6). Absolute accuracy is not what this test checks -- only that a
+ * conversion succeeds vs. fails across PM transitions -- so no wiring is needed.
+ *
+ * The board dts already sets &lpadc0 to "okay" and applies pinmux_lpadc0.
+ */
+
+#include <zephyr/dt-bindings/adc/adc.h>
+#include <zephyr/dt-bindings/adc/mcux-lpadc.h>
+
+/ {
+	zephyr,user {
+		io-channels = <&lpadc0 0>;
+	};
+};
+
+&lpadc0 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	channel@0 {
+		reg = <0>;
+		zephyr,gain = "ADC_GAIN_1";
+		zephyr,reference = "ADC_REF_EXTERNAL0";
+		zephyr,vref-mv = <3300>;
+		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,resolution = <16>;
+		zephyr,input-positive = <MCUX_LPADC_CH7A>;
+	};
+};
+
+/*
+ * WORKAROUND for a driver defect, not a test requirement.
+ *
+ * boards/nxp/frdm_mcxaxx6/board_common.dtsi enables both lpadc0 and lpadc1, and
+ * drivers/adc/adc_mcux_lpadc.c cannot be built with CONFIG_PM_DEVICE=y when more than
+ * one instance is enabled:
+ *
+ *   #define LPADC_PM_DEVICE_DEFINE  PM_DEVICE_DT_INST_DEFINE(n, mcux_lpadc_pm_callback);
+ *
+ * is an object-like macro, so the 'n' in its replacement list is a literal 'n', not the
+ * parameter of the LPADC_MCUX_INIT(n) macro it expands inside (parameter substitution
+ * happens before nested expansion). Every instance therefore defines the same symbol
+ * __pm_device_dts_ord_DT_N_INST_n_nxp_lpc_lpadc_ORD and the second one is a
+ * redefinition error. LPADC_PM_DEVICE_GET has the same bug, which is why the
+ * single-instance case still links.
+ *
+ * The fix is to parameterize both macros, e.g. LPADC_PM_DEVICE_DEFINE(n). Until then,
+ * disable the instance this test does not drive so the PM phases can actually run.
+ */
+&lpadc1 {
+	status = "disabled";
+};

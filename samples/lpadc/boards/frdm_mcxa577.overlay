@@ -1,0 +1,37 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * LPADC channel setup for the device-PM test on FRDM-MCXA577.
+ *
+ * MCXA has no on-chip Vref regulator node, so the reference is the external
+ * VREFH pin (VDD, 3.3 V) and the channel is the one the board already pinmuxes:
+ * CH9A (J4 pin 10). Absolute accuracy is not what this test checks -- only that a
+ * conversion succeeds vs. fails across PM transitions -- so no wiring is needed.
+ *
+ * The board dts already sets &lpadc0 to "okay" and applies pinmux_lpadc0.
+ */
+
+#include <zephyr/dt-bindings/adc/adc.h>
+#include <zephyr/dt-bindings/adc/mcux-lpadc.h>
+
+/ {
+	zephyr,user {
+		io-channels = <&lpadc0 0>;
+	};
+};
+
+&lpadc0 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	channel@0 {
+		reg = <0>;
+		zephyr,gain = "ADC_GAIN_1";
+		zephyr,reference = "ADC_REF_EXTERNAL0";
+		zephyr,vref-mv = <3300>;
+		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,resolution = <16>;
+		zephyr,input-positive = <MCUX_LPADC_CH9A>;
+	};
+};
