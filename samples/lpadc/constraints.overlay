@@ -2,18 +2,30 @@
  * Copyright 2026 NXP
  * SPDX-License-Identifier: Apache-2.0
  *
- * System-PM constraint layer: mark which SoC power states cut power to the
- * LPADC. When the driver holds a conversion lock, the PM policy must not pick
- * one of these states. Stacked on top of the per-board overlay in boards/ for
- * the system phase (via EXTRA_DTC_OVERLAY_FILE, so the board overlay is still
- * picked up automatically).
+ * System-PM constraint layer: mark which SoC power states stop the LPADC from
+ * completing a conversion. When the driver holds a conversion lock, the PM
+ * policy must not pick one of these states. Stacked on top of the per-board
+ * overlay in boards/ for the system phase (via EXTRA_DTC_OVERLAY_FILE, so the
+ * board overlay is still picked up automatically).
  *
  * Every MCXN and MCXA SoC declares the same four power states -- sleep,
- * deepsleep, powerdown, deeppowerdown -- so this file is family-wide. The ADC
- * analog block loses power in powerdown/deeppowerdown; sleep and deepsleep
- * retain it. Adjust per real project characterization.
+ * deepsleep, powerdown, deeppowerdown -- so this file is family-wide.
+ *
+ * Per MCX N23x RM Rev 4 Table 220 (and the equivalent table in every other MCXN
+ * and MCXA RM): the ADC analog block is not active in Power Down and the whole
+ * CORE domain (registers included) is gated in Deep Power Down, so neither can
+ * be entered mid-conversion. Deep Sleep is listed as well: the converter is
+ * allowed to keep running there (CTRL[DOZEN] = 0 by reset, bus clock gated but
+ * hardware trigger and compare wakeup still live), yet only for as long as ADCK
+ * survives, and the default clock configuration makes no such promise. A project
+ * that arranges a low-power ADCK source can drop &deepsleep.
+ *
+ * Every MCXN/MCXA SoC DTS now carries this exact list, so on those SoCs this
+ * overlay only restates what the SoC already declares. It is kept because the
+ * system phase is about the constraint mechanism, not about who declared it: the
+ * phase still has to pass on a board whose SoC DTS predates that list.
  */
 
 &lpadc0 {
-	zephyr,disabling-power-states = <&powerdown &deeppowerdown>;
+	zephyr,disabling-power-states = <&deepsleep &powerdown &deeppowerdown>;
 };
