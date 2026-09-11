@@ -304,5 +304,18 @@ int main(void)
 #endif
 
 	printk("PM-TEST: RESULT %s\n", test_failed ? "FAIL" : "PASS");
+
+	/* Do not return. Returning from main() lets the idle thread park the
+	 * core in WFI, which powers down the DAP: SWD access is then lost and
+	 * the next flash attempt fails ("Failed to power up DAP", or the ROM
+	 * dropping into its ISP command loop). Busy-waiting keeps the core out
+	 * of idle so the board stays programmable after a run, and with
+	 * CONFIG_PM it also keeps the PM subsystem from entering a low-power
+	 * state behind the test's back.
+	 */
+	while (true) {
+		k_busy_wait(USEC_PER_MSEC * 100U);
+	}
+
 	return 0;
 }
