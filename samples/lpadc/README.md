@@ -124,6 +124,16 @@ west build -b $BOARD . -p always
 - Confirms conversions still complete with constraints compiled in.
 
 ## Notes / follow-ups
+- `main()` ends in a `k_busy_wait()` spin instead of returning. Returning lets the
+  idle thread park the core in WFI, which powers down the DAP: SWD access is lost
+  and the next flash fails (`Failed to power up DAP`, or the ROM dropping into its
+  ISP command loop). With `CONFIG_PM` it would also let the PM subsystem enter a
+  low-power state behind the test's back.
+- Because that spin never yields, `prj.conf` sets `CONFIG_LOG_MODE_IMMEDIATE=y`.
+  In the default deferred mode the log thread never gets to run, and since
+  `CONFIG_LOG_PRINTK` routes `printk` through it too, the entire run is swallowed
+  — a capture comes back empty or truncated mid-line *even when the test passes*.
+  That failure mode looks exactly like a hang, so do not remove this.
 - Deeper verification of the constraint (actually attempting to enter powerdown
   during a conversion and confirming it is blocked) needs an idle-thread /
   residency setup; left as a next step.
