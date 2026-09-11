@@ -43,9 +43,9 @@ target name. The channel and reference differ by family:
 - The channel numbers match `samples/drivers/adc/adc_dt/boards/` so they land on pins
   the board's `pinmux_lpadc0` already configures.
 
-## Finding: the driver cannot build with `CONFIG_PM_DEVICE=y` and two instances
+## Finding (fixed): the driver could not build with `CONFIG_PM_DEVICE=y` and two instances
 
-`drivers/adc/adc_mcux_lpadc.c` has:
+`drivers/adc/adc_mcux_lpadc.c` had:
 
 ```c
 #define LPADC_PM_DEVICE_DEFINE  PM_DEVICE_DT_INST_DEFINE(n, mcux_lpadc_pm_callback);
@@ -67,8 +67,11 @@ build breaks outright. `boards/nxp/frdm_mcxaxx6/board_common.dtsi` enables both 
 and `lpadc1`, so `frdm_mcxa266`, `frdm_mcxa346` and `frdm_mcxa366` hit this.
 
 The fix is to parameterize both macros (`LPADC_PM_DEVICE_DEFINE(n)` /
-`LPADC_PM_DEVICE_GET(n)`). Until then those three board overlays disable `lpadc1` so the
-PM phases can run at all; the workaround and its rationale are in each overlay.
+`LPADC_PM_DEVICE_GET(n)`), which is now done in the driver — `frdm_mcxa266` builds both
+instances with `CONFIG_PM_DEVICE=y` and emits two distinct `__pm_device_dts_ord_*`
+objects. The `lpadc1` disable in those three board overlays is therefore no longer
+required to work around this; it is kept only so the PM phases drive exactly the one
+instance the test wires up.
 
 ## Phases & expectations
 
@@ -86,8 +89,15 @@ west build -b $BOARD . -p always
 ... -- -DEXTRA_CONF_FILE=overlay-pm-device.conf
 ```
 - Device inits **ACTIVE** (no runtime PM → `pm_device_driver_init` resumes it).
-- `SUSPEND` action succeeds → state `SUSPENDED`. A read while suspended is
-  logged (not asserted) to document driver behavior against a disabled block.
+- `SUSPEND` action succeeds → state `SUSPENDED`. A read while suspended must
+  fail with `-EBUSY`: the driver rejects it up front instead of arming a
+  conversion on a disabled block.
+> **Finding (fixed):** the driver used to accept that read, `LPADC_Enable(false)`
+> meant the completion interrupt never arrived, and `adc_context`'s default
+> `K_FOREVER` wait blocked the caller permanently. The driver now checks the PM
+> state before taking the ADC context lock, and bounds the completion wait with
+> `CONFIG_ADC_MCUX_LPADC_ACQUISITION_TIMEOUT_MS` (`-EAGAIN` plus a sequence
+> abort on expiry) so no other route can hang either.
 - `RESUME` action succeeds → state `ACTIVE`; read succeeds again.
 - Double `RESUME` returns `-EALREADY`.
 
@@ -117,10 +127,21 @@ west build -b $BOARD . -p always
 ... -- -DEXTRA_CONF_FILE=overlay-pm-system.conf \
        -DEXTRA_DTC_OVERLAY_FILE=constraints.overlay
 ```
-- `constraints.overlay` adds `zephyr,disabling-power-states = <&powerdown
-  &deeppowerdown>` to `&lpadc0`, so the driver's per-conversion
+- `constraints.overlay` sets `zephyr,disabling-power-states = <&deepsleep
+  &powerdown &deeppowerdown>` on `&lpadc0`, so the driver's per-conversion
   `pm_policy_device_power_lock` blocks those states while a read is in flight.
   All MCXN/MCXA SoCs use those same power-state labels, so the file is family-wide.
+  Every MCXN/MCXA SoC DTS now declares the same list, so on those SoCs the overlay
+  only restates it; it is kept because this phase exercises the constraint
+  mechanism, which has to work on a board whose SoC DTS predates that list.
+- The list follows MCX N23x RM Rev 4 Table 220, and the equivalent table in every
+  other MCXN/MCXA RM says the same thing: the ADC analog block is not active in
+  Power Down, and Deep Power Down gates the whole CORE domain including the
+  registers. Deep Sleep is included conservatively — the converter *can* keep
+  running there (`CTRL[DOZEN]` = 0 by reset, hardware trigger and compare wakeup
+  stay live, only the bus clock is gated) but only while ADCK survives, which the
+  default clock configuration does not promise. A project that arranges a
+  low-power ADCK source can drop `&deepsleep` in its own overlay.
 - Confirms conversions still complete with constraints compiled in.
 
 ## Notes / follow-ups
