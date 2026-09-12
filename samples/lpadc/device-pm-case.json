@@ -1,0 +1,6 @@
+{
+  "sample": "lpadc",
+  "ip": "LPADC",
+  "compatibles": ["nxp,lpc-lpadc"],
+  "drivers": ["drivers/adc/adc_mcux_lpadc.c"]
+}
