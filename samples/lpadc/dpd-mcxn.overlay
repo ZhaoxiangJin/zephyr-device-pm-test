@@ -1,0 +1,29 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Deep Power Down layer, MCXN. Stacks on overlay-pm-sysmanaged.conf: it needs no
+ * Kconfig of its own, because CONFIG_PM_S2RAM has no prompt -- it is derived from
+ * whether a suspend-to-ram power state is enabled in the devicetree, which is
+ * exactly what this file does.
+ *
+ * Suspend-to-RAM is opt-in in the SoC DTS, so the application has to enable it;
+ * enabling it is also what arms the SoC's peripheral_domain, whose
+ * onoff-power-states list names this state and nothing else. That domain is what
+ * hands the LPADC the TURN_OFF/TURN_ON pair it needs to reconfigure and
+ * recalibrate a register block that came back from reset.
+ *
+ * On MCXN only SRAMA survives Deep Power Down (the VBAT RAM LDO keeps it alive),
+ * so the whole retained working set has to live there. Constrain zephyr,sram to
+ * RAMA1-RAMA3, 24 KB at 0x20002000, which keeps it clear of the boot ROM
+ * scratch at the bottom of SRAMA -- the same window
+ * samples/boards/nxp/mcxn_a/s2ram uses.
+ */
+
+&deeppowerdown {
+	status = "okay";
+};
+
+&sram0 {
+	reg = <0x20002000 0x6000>;
+};

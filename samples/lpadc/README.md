@@ -106,21 +106,32 @@ west build -b $BOARD . -p always
 ... -- -DEXTRA_CONF_FILE=overlay-pm-runtime.conf
 ```
 - Device inits **SUSPENDED** (runtime PM path in `pm_device_driver_init`).
-- **Finding:** the LPADC read path does *not* call `pm_device_runtime_get/put`,
-  so an unwrapped read does not auto-resume the device. The test logs this
-  unwrapped read, then shows the correct pattern: `runtime_get` → read →
-  `runtime_put`, with state going ACTIVE then back to SUSPENDED.
+- An *unwrapped* read auto-resumes the converter, completes, and lets it go
+  again: the driver takes a runtime reference for the length of the sequence and
+  drops it from the watermark interrupt. The state must be back to `SUSPENDED`
+  shortly after the read returns.
+- A caller that holds its own `pm_device_runtime_get()` across several reads must
+  keep the device ACTIVE — the driver's own get/put pair must not disturb that
+  reference.
+- `adc_channel_setup()` on a SUSPENDED device returns 0 and leaves it SUSPENDED.
+  It only records what `RESUME` has to apply; touching the reference supplies
+  from there would raise the regulator's use count with nothing left to lower it.
+> **Finding (fixed):** the read path used to take no reference at all, so an
+> unwrapped read ran against a disabled converter. The driver now wraps each
+> sequence in `pm_device_runtime_get()` / `pm_device_runtime_put_async()` plus
+> `pm_device_busy_set()`/`_clear()`. The async put is why
+> `CONFIG_ADC_MCUX_LPADC` selects `CONFIG_PM_DEVICE_RUNTIME_ASYNC`: the
+> reference is dropped from interrupt context, which the synchronous put cannot
+> do.
+>
+> The suspend itself is therefore deferred to the system work queue, so the test
+> sleeps briefly before sampling the state.
 > This overlay also sets `CONFIG_PM_DEVICE_RUNTIME_DEFAULT_ENABLE=y`, which is
 > **required**, not cosmetic. With `CONFIG_PM_DEVICE_RUNTIME=y` alone,
 > `pm_device_driver_init()` resumes the device to ACTIVE and leaves runtime PM *disabled*
 > for it; `pm_device_runtime_get()`/`put()` then return 0 without doing anything, and the
 > whole phase would pass while testing nothing. The alternative is
 > `zephyr,pm-device-runtime-auto` on the DT node.
->
-> Because of this the shared baseline phase wraps its control read in
-> `pm_device_runtime_get()`/`put()` when runtime PM is on — the device boots SUSPENDED and
-> this driver takes no reference of its own, so an unwrapped read there would fail for
-> exactly the reason this phase exists to document.
 
 ### System PM + constraints — `overlay-pm-system.conf` + `constraints.overlay`
 ```
@@ -143,6 +154,71 @@ west build -b $BOARD . -p always
   default clock configuration does not promise. A project that arranges a
   low-power ADCK source can drop `&deepsleep` in its own overlay.
 - Confirms conversions still complete with constraints compiled in.
+
+### System-managed sweep — `overlay-pm-sysmanaged.conf` (`CONFIG_PM_DEVICE_SYSTEM_MANAGED`)
+```
+... -- -DEXTRA_CONF_FILE=overlay-pm-sysmanaged.conf
+```
+This is the other half of `CONFIG_PM_DEVICE`: instead of the driver managing its
+own references, `pm_suspend_devices()` sweeps every device before the SoC enters a
+low-power state and `pm_resume_devices()` walks them back afterwards. It is
+mutually exclusive with `CONFIG_PM_DEVICE_RUNTIME` — the sweep skips any device
+that has runtime PM enabled, so a build with both tests nothing here.
+
+- Device inits **ACTIVE** (no runtime PM), and a read succeeds.
+- The phase then forces exactly one transition with `pm_state_force()` and a
+  `k_sleep()`. Forcing it keeps the run deterministic and leaves the board awake
+  — and therefore debuggable — for the rest of the test.
+- After the transition the device must be **ACTIVE** again and a read must
+  succeed.
+
+Without a `dpd-*.overlay` the forced state is Deep Sleep, which the LPADC
+survives; this variant checks that the sweep's `SUSPEND`/`RESUME` pair round-trips
+cleanly. The wake-up needs no extra setup: every MCXA/MCXN board already sets
+`/chosen/zephyr,system-timer-companion = &lptmr0`, so `SysTick` hands over to
+LPTMR0 in low-power states and a plain `k_sleep()` is enough. LPTMR0 also carries
+`wakeup-source` and `wakeup-ctrls = <&wuu ...>` in the SoC DTS, and the counter
+driver arms the WUU route for the companion timer by itself, so the same
+`k_sleep()` also wakes the SoC from Deep Power Down. The overlay only has to turn
+on `CONFIG_COUNTER`, `CONFIG_COUNTER_MCUX_LPTMR_ALARM` and `CONFIG_WUC`.
+
+> `pm_device_busy_set()` is what keeps the sweep from suspending the converter
+> mid-sequence: `pm_suspend_devices()` skips busy devices. The driver sets it
+> alongside the runtime reference, so it is in place in both device-PM modes.
+
+### Deep Power Down — `+ dpd-mcx{n,a}.overlay`
+```
+... -- -DEXTRA_CONF_FILE=overlay-pm-sysmanaged.conf \
+       -DEXTRA_DTC_OVERLAY_FILE=dpd-mcxn.overlay     # or dpd-mcxa.overlay
+```
+Deep Power Down gates the whole CORE domain, so the LPADC register block comes
+back from reset — `SUSPEND`/`RESUME` alone cannot restore it, the driver has to
+re-run `LPADC_Init()` and the offset calibration. This layer stacks on the
+system-managed one (the domain is driven by the device sweep) and adds nothing to
+its Kconfig: `CONFIG_PM_S2RAM` has no prompt, it is derived from whether a
+suspend-to-ram power state is enabled in the devicetree. So the devicetree
+overlay enabling `&deeppowerdown` is the whole layer.
+
+- `TURN_OFF` / `TURN_ON` are delivered by the `peripheral_domain` node now
+  declared in every MCXN/MCXA SoC DTS, with the LPADC nodes pointing at it via
+  `power-domains`. That node uses `power-domain-soc-state-change` with
+  `onoff-power-states = <&deeppowerdown>`, and `PM_STATE_FROM_DT` skips power
+  states that are not `okay` — so the domain is completely inert until an
+  application enables Deep Power Down, which is why it can live in the SoC DTS.
+  `CONFIG_POWER_DOMAIN` is turned on by the SoC `Kconfig.defconfig` whenever
+  `CONFIG_PM_DEVICE=y`.
+- The driver's `TURN_ON` re-runs clock setup, `LPADC_Init()`, calibration and the
+  interrupt wiring; it enables the reference regulator only for the duration of
+  the calibration and drops it again, so a device that stays suspended afterwards
+  does not leave the regulator enabled.
+- The two overlays differ only in SRAM: on MCXN only SRAMA is retained across
+  Deep Power Down, so `dpd-mcxn.overlay` narrows `&sram0` to a 24 KB window clear
+  of the boot ROM scratch area (matching `samples/boards/nxp/mcxn_a/s2ram`). All
+  MCXA SRAM is retained, so `dpd-mcxa.overlay` only enables the state.
+- The console is *not* on the peripheral domain and its driver has no equivalent
+  hook, so the test re-initialises the PORT / LP_FLEXCOMM / LPUART chain by hand
+  after the wake purely so it can report its result. That workaround is exactly
+  what the LPADC no longer needs.
 
 ## Notes / follow-ups
 - `main()` ends in a `k_busy_wait()` spin instead of returning. Returning lets the
