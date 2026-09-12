@@ -34,7 +34,9 @@ one per layer, so history stays readable and a regression is a diff.
   so a typo shows up as an unmatched target in the report rather than silently
   counting as untested.
 - `layers` keys are the case suffixes from `testcase.yaml`'s `tests:` block
-  (`baseline`, `device`, `runtime`, `system`).
+  (`baseline`, `device`, `runtime`, `system`, `sysmanaged`, and `dpd.mcxn` /
+  `dpd.mcxa` — the Deep Power Down layer is split per family because its
+  devicetree overlay is).
 - Layer results:
   - `pass` — the console capture matched the PASS regex.
   - `fail` — it ran and did not pass. This is the one that must never be

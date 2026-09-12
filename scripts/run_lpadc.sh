@@ -5,7 +5,7 @@
 # Build (and optionally flash) the LPADC device-PM test in one of its PM layers.
 # Run from the west workspace root, with the Zephyr environment active.
 #
-#   scripts/run_lpadc.sh <baseline|device|runtime|system> [-b BOARD] [--flash]
+#   scripts/run_lpadc.sh <baseline|device|runtime|system|sysmanaged|dpd> [-b BOARD] [--flash]
 #
 # BOARD defaults to frdm_mcxn947/mcxn947/cpu0. Any board target with an overlay in
 # samples/lpadc/boards/ works; see samples/lpadc/README.md for the list.
@@ -36,8 +36,20 @@ case "$MODE" in
     EXTRA=(-DEXTRA_CONF_FILE=overlay-pm-system.conf
            -DEXTRA_DTC_OVERLAY_FILE=constraints.overlay)
     ;;
+  sysmanaged) EXTRA=(-DEXTRA_CONF_FILE=overlay-pm-sysmanaged.conf) ;;
+  dpd)
+    # Deep Power Down is opt-in per family: only SRAMA survives it on MCXN, so
+    # that overlay also narrows sram0. Pick the overlay from the board target.
+    case "$BOARD" in
+      *mcxn*) DPD_OVERLAY=dpd-mcxn.overlay ;;
+      *mcxa*) DPD_OVERLAY=dpd-mcxa.overlay ;;
+      *) echo "dpd: no overlay for board '$BOARD'" >&2; exit 2 ;;
+    esac
+    EXTRA=(-DEXTRA_CONF_FILE=overlay-pm-sysmanaged.conf
+           -DEXTRA_DTC_OVERLAY_FILE="$DPD_OVERLAY")
+    ;;
   *)
-    echo "usage: $0 <baseline|device|runtime|system> [-b BOARD] [--flash]" >&2
+    echo "usage: $0 <baseline|device|runtime|system|sysmanaged|dpd> [-b BOARD] [--flash]" >&2
     exit 2
     ;;
 esac

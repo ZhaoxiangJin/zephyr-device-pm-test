@@ -96,13 +96,27 @@ west build -b $BOARD zephyr-device-pm-test/samples/lpadc -p always \
   -- -DEXTRA_CONF_FILE=overlay-pm-system.conf \
      -DEXTRA_DTC_OVERLAY_FILE=constraints.overlay
 
+# The system-managed device sweep: pm_suspend_devices()/pm_resume_devices() around
+# one forced Deep Sleep transition. Mutually exclusive with runtime PM.
+west build -b $BOARD zephyr-device-pm-test/samples/lpadc -p always \
+  -- -DEXTRA_CONF_FILE=overlay-pm-sysmanaged.conf
+
+# Deep Power Down: the peripheral register block is reset, so the sweep's
+# SUSPEND/RESUME is not enough and the power domain's TURN_OFF/TURN_ON has to
+# restore the hardware. The DT overlay is family-specific (only SRAMA is retained
+# across DPD on MCXN), so use dpd-mcxa.overlay on MCXA.
+west build -b $BOARD zephyr-device-pm-test/samples/lpadc -p always \
+  -- -DEXTRA_CONF_FILE=overlay-pm-sysmanaged.conf \
+     -DEXTRA_DTC_OVERLAY_FILE=dpd-mcxn.overlay
+
 west flash
 ```
 
 Or use the helper:
-`scripts/run_lpadc.sh <baseline|device|runtime|system> [-b BOARD] [--flash]`.
+`scripts/run_lpadc.sh <baseline|device|runtime|system|sysmanaged|dpd> [-b BOARD] [--flash]`
+(the `dpd` mode picks the family overlay from the board target).
 
-The LPCMP case follows the same four layers — swap `samples/lpadc` for `samples/lpcmp`,
+The LPCMP case follows the first four layers — swap `samples/lpadc` for `samples/lpcmp`,
 or use
 `scripts/run_lpcmp.sh <baseline|device|runtime|system> [-b BOARD] [--loopback] [--flash]`.
 
@@ -137,8 +151,30 @@ case's runtime and system overlays therefore set
 
 A knock-on effect worth knowing when you write a new case: once runtime PM is genuinely
 enabled, the device boots SUSPENDED, so any unconditional sanity read in a shared
-baseline phase has to be wrapped in `pm_device_runtime_get()`/`put()` — otherwise the
+baseline phase fails unless *something* takes a reference. A driver whose API path does
+that itself — as the LPADC now does — needs no wrapping; for one that does not, the
+baseline read has to be wrapped in `pm_device_runtime_get()`/`put()`, otherwise the
 control check fails for exactly the reason the runtime phase is there to document.
+
+## Watch out for: system-managed and runtime device PM are mutually exclusive
+
+`pm_suspend_devices()` skips any device that is busy, is a wakeup source, or has runtime
+PM enabled. So a build with both `CONFIG_PM_DEVICE_SYSTEM_MANAGED=y` and
+`CONFIG_PM_DEVICE_RUNTIME_DEFAULT_ENABLE=y` exercises neither path for the device under
+test: the sweep passes it over and nothing else suspends it. The two are separate layers
+(`overlay-pm-runtime.conf`, `overlay-pm-sysmanaged.conf`) for that reason.
+
+A second trap in the same symbol: `PM_DEVICE_SYSTEM_MANAGED` is `default y if
+!PM_DEVICE_RUNTIME` inside `if PM_DEVICE`, with no dependency on `PM`. So the plain
+device-PM layer (`CONFIG_PM_DEVICE=y` and nothing else) also has it set, even though
+there is no system PM and therefore no sweep at all. A `#if` that selects between the
+manual phase and the sweep phase has to test `CONFIG_PM` as well, or the manual phase
+compiles out of the very layer it belongs to and the build fails on an unused helper.
+
+The same applies to power domains built on `power-domain-soc-state-change`: the domain
+device gets its own `SUSPEND`/`RESUME` from the sweep, and that is what makes it hand its
+children `TURN_OFF`/`TURN_ON`. Under runtime PM the domain is never swept, so its
+children never see those actions.
 
 ## Adding a new driver case
 
@@ -162,10 +198,14 @@ control check fails for exactly the reason the runtime phase is there to documen
 
 ## What each case verifies
 
-- `samples/lpadc/README.md` — notably that the LPADC read path does **not** call
-  `pm_device_runtime_get/put`, so a caller must wrap reads itself when runtime PM is on,
-  and that the driver does not even *compile* with `CONFIG_PM_DEVICE=y` when two LPADC
-  instances are enabled (`LPADC_PM_DEVICE_DEFINE` is not instance-parameterized).
+- `samples/lpadc/README.md` — five layers, covering both device-PM modes plus the power
+  domain. The defects it found are all fixed in the driver now: a read against a
+  SUSPENDED converter used to block forever, the read path took no runtime reference at
+  all, `adc_channel_setup()` unbalanced the bandgap regulator, the driver did not even
+  *compile* with `CONFIG_PM_DEVICE=y` and two enabled instances
+  (`LPADC_PM_DEVICE_DEFINE` was not instance-parameterized), and nothing restored the
+  register block after Deep Power Down. The README keeps each one with the reasoning, so
+  a regression is recognisable.
 - `samples/lpcmp/README.md` — two driver defects: the comparator boots with
   `CCR0.CMP_EN` set while PM reports SUSPENDED, and `set_trigger_callback()` re-enables a
   suspended comparator behind PM's back.
