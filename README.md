@@ -123,9 +123,18 @@ or use
 To build-sweep every board target at once:
 
 ```sh
-west twister -T zephyr-device-pm-test/samples --build-only \
+west twister -T zephyr-device-pm-test/samples --build-only -O /c/tw \
   -p frdm_mcxn947/mcxn947/cpu0 -p frdm_mcxa153 ...   # or --all
 ```
+
+On Windows the short `-O` is not cosmetic. The default outdir sits under the west
+topdir, and `<outdir>/<board_target>/<toolchain>/<suite path>/<scenario>/` plus an
+object path such as
+`zephyr/subsys/portability/posix/c_lib_ext/CMakeFiles/subsys__portability__posix__c_lib_ext.dir/getopt_shim.c.obj`
+crosses 260 characters for the longer board targets. The compiler then never writes
+the object, cmake and ninja say nothing, and the build fails much later in `ar` with
+`error reading ...obj: No such file or directory` -- which reads like a parallel-build
+race. It is not: it reproduces at `-j 2` on an incremental rebuild.
 
 ## Reading the output
 
