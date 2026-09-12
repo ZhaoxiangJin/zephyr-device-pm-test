@@ -1,0 +1,6 @@
+{
+  "sample": "lpcmp",
+  "ip": "LPCMP",
+  "compatibles": ["nxp,lpcmp"],
+  "drivers": ["drivers/comparator/comparator_nxp_lpcmp.c"]
+}

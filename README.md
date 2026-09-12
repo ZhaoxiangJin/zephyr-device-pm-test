@@ -37,10 +37,22 @@ the in-tree LPADC/LPCMP tests either.
 samples/
   lpadc/            # LPADC device-PM test (first case)
     boards/         #   per-board channel + reference wiring
+    device-pm-case.json   #   which DT compatibles this case covers
   lpcmp/            # LPCMP comparator device-PM test
     boards/         #   per-board mux input, DAC and loopback GPIO
+    device-pm-case.json
+results/            # what has actually run, one file per run
 scripts/            # build/flash helpers
 ```
+
+`device-pm-case.json` and `results/` exist for a reader outside this repository:
+the [Device PM report](https://zhaoxiangjin.github.io/zephyr-data/reports/device-pm/)
+derives Device PM *enablement* by statically analysing the Zephyr tree, but no
+amount of source analysis can say whether a PM transition was ever exercised.
+That evidence only exists here, so it is recorded in a form a tool can read —
+`device-pm-case.json` ties a sample to the compatibles it covers, `testcase.yaml`
+already declares the board targets and the PM layers, and `results/*.json`
+records the runs. See [results/README.md](results/README.md) for the format.
 
 ## Prerequisites
 
@@ -141,6 +153,12 @@ control check fails for exactly the reason the runtime phase is there to documen
    the way `samples/lpcmp` checks `CCR0.CMP_EN`.
 4. Keep the PM overlays (`device`, `runtime`, `system`) — they are driver-agnostic.
 5. Update `testcase.yaml`, including `platform_allow`.
+6. Write `device-pm-case.json` naming the DT compatibles and driver sources the case
+   covers. Without it the Device PM report cannot tell which IP the sample exercises, so
+   the case is invisible there however green it is locally.
+7. After a run, add a `results/<date>-<sample>-<what>.json` file. A case that exists but
+   has never run is reported as exactly that, which is the honest state — do not leave a
+   passing run unrecorded and do not edit an old file to describe a new run.
 
 ## What each case verifies
 

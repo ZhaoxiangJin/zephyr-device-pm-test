@@ -1,0 +1,22 @@
+{
+  "run": "20260912-lpadc-build-sweep",
+  "date": "2026-09-12",
+  "sample": "lpadc",
+  "where": "local-build",
+  "note": "west build of all four PM layers for every board target the case declares; images staged as <target>-<layer>.hex.",
+  "targets": {
+    "frdm_mcxn236": {"layers": {"baseline": "built", "device": "built", "runtime": "built", "system": "built"}},
+    "frdm_mcxn947/mcxn947/cpu0": {"layers": {"baseline": "built", "device": "built", "runtime": "built", "system": "built"}},
+    "frdm_mcxn947/mcxn947/cpu0/qspi": {"layers": {"baseline": "built", "device": "built", "runtime": "built", "system": "built"}},
+    "mcx_n5xx_evk/mcxn547/cpu0": {"layers": {"baseline": "built", "device": "built", "runtime": "built", "system": "built"}},
+    "mcx_n9xx_evk/mcxn947/cpu0": {"layers": {"baseline": "built", "device": "built", "runtime": "built", "system": "built"}},
+    "mcx_n9xx_evk/mcxn947/cpu0/qspi": {"layers": {"baseline": "built", "device": "built", "runtime": "built", "system": "built"}},
+    "frdm_mcxa153": {"layers": {"baseline": "built", "device": "built", "runtime": "built", "system": "built"}},
+    "frdm_mcxa156": {"layers": {"baseline": "built", "device": "built", "runtime": "built", "system": "built"}},
+    "frdm_mcxa266": {"layers": {"baseline": "built", "device": "built", "runtime": "built", "system": "built"}},
+    "frdm_mcxa344": {"layers": {"baseline": "built", "device": "built", "runtime": "built", "system": "built"}},
+    "frdm_mcxa346": {"layers": {"baseline": "built", "device": "built", "runtime": "built", "system": "built"}},
+    "frdm_mcxa366": {"layers": {"baseline": "built", "device": "built", "runtime": "built", "system": "built"}},
+    "frdm_mcxa577": {"layers": {"baseline": "built", "device": "built", "runtime": "built", "system": "built"}}
+  }
+}

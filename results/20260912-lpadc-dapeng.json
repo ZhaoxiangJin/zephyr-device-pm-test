@@ -1,0 +1,44 @@
+{
+  "run": "20260912-lpadc-dapeng",
+  "date": "2026-09-12",
+  "sample": "lpadc",
+  "where": "dapeng",
+  "note": "One board per SoC devicetree family, on-chip flash targets only. Result taken from the console capture: 'PM-TEST: RESULT PASS'.",
+  "targets": {
+    "frdm_mcxn236": {
+      "job": "2307575",
+      "station": "19612@main",
+      "layers": {"baseline": "pass", "device": "pass", "runtime": "pass", "system": "pass"}
+    },
+    "frdm_mcxn947/mcxn947/cpu0": {
+      "job": "2307577",
+      "station": "1166@main",
+      "layers": {"baseline": "pass", "device": "pass", "runtime": "pass", "system": "pass"}
+    },
+    "frdm_mcxa153": {
+      "job": "2307587",
+      "station": "4708@main",
+      "layers": {"baseline": "pass", "device": "pass", "runtime": "pass", "system": "pass"}
+    },
+    "frdm_mcxa156": {
+      "job": "2307601",
+      "station": "32641@B2B",
+      "layers": {"baseline": "pass", "device": "pass", "runtime": "pass", "system": "pass"}
+    },
+    "frdm_mcxa366": {
+      "job": "2307602",
+      "station": "355333@main",
+      "note": "Shares nxp_mcxaxx6_common.dtsi with frdm_mcxa346, which has no farm station.",
+      "layers": {"baseline": "pass", "device": "pass", "runtime": "pass", "system": "pass"}
+    },
+    "frdm_mcxa577": {
+      "job": "2307583",
+      "station": "270191@main",
+      "layers": {"baseline": "pass", "device": "pass", "runtime": "pass", "system": "pass"}
+    },
+    "frdm_mcxa344": {
+      "note": "Only farm station for this board is tagged @freemaster; two bridge attempts 40 minutes apart both stalled at 'waiting'.",
+      "layers": {"baseline": "blocked", "device": "blocked", "runtime": "blocked", "system": "blocked"}
+    }
+  }
+}
