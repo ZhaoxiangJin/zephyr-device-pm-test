@@ -1,0 +1,35 @@
+{
+  "run": "20260913-lpadc-dapeng-pm-layers",
+  "date": "2026-09-13",
+  "sample": "lpadc",
+  "where": "dapeng",
+  "note": "Six-layer sweep with the full LPADC device-PM fix set: the driver's TURN_ON reconfiguration and per-sequence hold, PM support in the NXP PORT pinctrl and VREF regulator drivers, the power-domain driver visiting every child on RESUME, the pm_system_resume() ordering fix, and the MCXA/MCXN default that puts the system timer's low-power companion (LPTMR through the Counter API) in the build. Images were flashed as .hex over dapeng remote and the console captured over the forwarded serial stream; each layer was checked for the sample's own RESULT line.",
+  "targets": {
+    "frdm_mcxn947/mcxn947/cpu0": {
+      "job": "2307750",
+      "station": "1166@main",
+      "note": "All six layers pass. The two constraint checks in the system layer needed a sample fix, not a driver fix: pm_policy_state_lock_is_active() answers for the power state and not for one device, and under CONFIG_PM the console LPUART holds the same Deep Sleep and Power Down locks until its transmission-complete interrupt runs, so a sample taken straight after a printk() reported the console. Readings drift between phases (2519 down to 1688 raw) because the channel reads a floating pin; only conversion success is a pass criterion.",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "runtime": "pass",
+        "system": "pass",
+        "sysmanaged": "pass",
+        "dpd.mcxn": "pass"
+      }
+    },
+    "frdm_mcxa156/mcxa156": {
+      "job": "2307753",
+      "station": "32602@main",
+      "note": "The four layers that stay out of Deep Sleep pass. The remaining two are blocked by an MCXA wake-up defect that has nothing to do with the LPADC: on this SoC a k_msleep() that lands in PM_STATE_SUSPEND_TO_IDLE never returns. Reproduced with a 20-line application holding no drivers at all (CONFIG_PM=y, three sleeps in a row): 20 ms in RUNTIME_IDLE returns, 60 ms in Deep Sleep does not. The same application on frdm_mcxn947 returns from RUNTIME_IDLE, Deep Sleep and Power Down alike, so the LPM companion timer is armed correctly there and the difference is in the MCXA wake path (the LPTMR is declared as a WUU module-6 wake-up source on both families).",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "runtime": "pass",
+        "system": "pass",
+        "sysmanaged": "blocked",
+        "dpd.mcxa": "blocked"
+      }
+    }
+  }
+}
