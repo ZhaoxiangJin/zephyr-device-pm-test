@@ -1,0 +1,139 @@
+{
+  "run": "20260913-lpadc-build-sweep-pm-layers",
+  "date": "2026-09-13",
+  "sample": "lpadc",
+  "where": "local-build",
+  "note": "west twister --build-only over every PM layer on every board target the case declares: 78 configurations, 0 failures. Seven scenarios exist but each target builds six, because the Deep Power Down layer is split per family. Covers the two layers added with the driver's TURN_ON/TURN_OFF support (sysmanaged, dpd) as well as the four older ones. Zephyr df86a1df26a, harness a6378be. Build evidence only -- these images were not run on silicon.",
+  "targets": {
+    "frdm_mcxn236": {
+      "layers": {
+        "baseline": "built",
+        "device": "built",
+        "runtime": "built",
+        "system": "built",
+        "sysmanaged": "built",
+        "dpd.mcxn": "built"
+      }
+    },
+    "frdm_mcxn947/mcxn947/cpu0": {
+      "layers": {
+        "baseline": "built",
+        "device": "built",
+        "runtime": "built",
+        "system": "built",
+        "sysmanaged": "built",
+        "dpd.mcxn": "built"
+      }
+    },
+    "frdm_mcxn947/mcxn947/cpu0/qspi": {
+      "layers": {
+        "baseline": "built",
+        "device": "built",
+        "runtime": "built",
+        "system": "built",
+        "sysmanaged": "built",
+        "dpd.mcxn": "built"
+      }
+    },
+    "mcx_n5xx_evk/mcxn547/cpu0": {
+      "layers": {
+        "baseline": "built",
+        "device": "built",
+        "runtime": "built",
+        "system": "built",
+        "sysmanaged": "built",
+        "dpd.mcxn": "built"
+      }
+    },
+    "mcx_n9xx_evk/mcxn947/cpu0": {
+      "layers": {
+        "baseline": "built",
+        "device": "built",
+        "runtime": "built",
+        "system": "built",
+        "sysmanaged": "built",
+        "dpd.mcxn": "built"
+      }
+    },
+    "mcx_n9xx_evk/mcxn947/cpu0/qspi": {
+      "layers": {
+        "baseline": "built",
+        "device": "built",
+        "runtime": "built",
+        "system": "built",
+        "sysmanaged": "built",
+        "dpd.mcxn": "built"
+      }
+    },
+    "frdm_mcxa153": {
+      "layers": {
+        "baseline": "built",
+        "device": "built",
+        "runtime": "built",
+        "system": "built",
+        "sysmanaged": "built",
+        "dpd.mcxa": "built"
+      }
+    },
+    "frdm_mcxa156": {
+      "layers": {
+        "baseline": "built",
+        "device": "built",
+        "runtime": "built",
+        "system": "built",
+        "sysmanaged": "built",
+        "dpd.mcxa": "built"
+      }
+    },
+    "frdm_mcxa266": {
+      "layers": {
+        "baseline": "built",
+        "device": "built",
+        "runtime": "built",
+        "system": "built",
+        "sysmanaged": "built",
+        "dpd.mcxa": "built"
+      }
+    },
+    "frdm_mcxa344": {
+      "layers": {
+        "baseline": "built",
+        "device": "built",
+        "runtime": "built",
+        "system": "built",
+        "sysmanaged": "built",
+        "dpd.mcxa": "built"
+      }
+    },
+    "frdm_mcxa346": {
+      "layers": {
+        "baseline": "built",
+        "device": "built",
+        "runtime": "built",
+        "system": "built",
+        "sysmanaged": "built",
+        "dpd.mcxa": "built"
+      }
+    },
+    "frdm_mcxa366": {
+      "layers": {
+        "baseline": "built",
+        "device": "built",
+        "runtime": "built",
+        "system": "built",
+        "sysmanaged": "built",
+        "dpd.mcxa": "built"
+      }
+    },
+    "frdm_mcxa577": {
+      "layers": {
+        "baseline": "built",
+        "device": "built",
+        "runtime": "built",
+        "system": "built",
+        "sysmanaged": "built",
+        "dpd.mcxa": "built"
+      }
+    }
+  }
+}
