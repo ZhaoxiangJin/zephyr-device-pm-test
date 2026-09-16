@@ -1,0 +1,26 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * System-PM constraint layer: mark which SoC power states the VREF block does not
+ * survive. Stacked on top of the per-board overlay in boards/ for the system
+ * phase (via EXTRA_DTC_OVERLAY_FILE, so the board overlay is still picked up
+ * automatically).
+ *
+ * Only &deeppowerdown is listed. The reference is in the CORE domain: Deep Sleep
+ * and Power Down leave its registers and its bandgap alone -- which is the point
+ * of a reference that a converter can keep using in a low-power state -- while
+ * Deep Power Down resets the block, and it is the one state the SoC dtsi already
+ * names in core_domain's onoff-power-states. So this file restates a claim the
+ * devicetree already makes rather than adding a new one.
+ *
+ * Nothing is expected to act on it: the driver takes no policy lock, because an
+ * enabled reference is not an operation in flight. The declaration is what an
+ * application would read to decide whether it has to re-enable the output after
+ * a transition, and the phase checks the other half -- that no lock is held on
+ * the reference's behalf.
+ */
+
+&vref {
+	zephyr,disabling-power-states = <&deeppowerdown>;
+};

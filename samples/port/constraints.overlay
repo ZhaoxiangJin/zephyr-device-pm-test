@@ -1,0 +1,37 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * System-PM constraint layer: mark which SoC power state stops the pin-mux from
+ * holding its configuration. Stacked on top of whatever else the board pulls in
+ * for the system phase (via EXTRA_DTC_OVERLAY_FILE, so the automatic boards/
+ * lookup still happens).
+ *
+ * The state named here is the one the SoC devicetree already names in
+ * core_domain's onoff-power-states, which is where the reference-manual answer
+ * for "which state takes the CORE domain down" lives: Deep Power Down. Plain
+ * sleep and deep sleep only gate clocks, and the pad configuration survives
+ * both.
+ *
+ * Only porta..portd are listed. Every MCXN and MCXA part has those four, while
+ * porte is missing on MCXA153 and portf only exists on some parts, so a
+ * family-wide file cannot name them without breaking the boards that lack the
+ * label. That is no loss here: the property is per node, but what the phase
+ * checks -- that no policy lock is held on the pin-mux's behalf -- is global.
+ */
+
+&porta {
+	zephyr,disabling-power-states = <&deeppowerdown>;
+};
+
+&portb {
+	zephyr,disabling-power-states = <&deeppowerdown>;
+};
+
+&portc {
+	zephyr,disabling-power-states = <&deeppowerdown>;
+};
+
+&portd {
+	zephyr,disabling-power-states = <&deeppowerdown>;
+};

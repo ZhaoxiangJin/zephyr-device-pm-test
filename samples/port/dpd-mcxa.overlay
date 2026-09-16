@@ -1,0 +1,21 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Deep Power Down layer, MCXA. Stacks on overlay-pm-sysmanaged.conf: it needs no
+ * Kconfig of its own, because CONFIG_PM_S2RAM has no prompt -- it is derived from
+ * whether a suspend-to-ram power state is enabled in the devicetree, which is
+ * exactly what this file does.
+ *
+ * Suspend-to-RAM is opt-in in the SoC DTS, so the application has to enable it;
+ * enabling it is also what arms the SoC's core_domain, whose onoff-power-states
+ * list names this state and nothing else. That domain is what hands every pin-mux
+ * instance the TURN_ON it needs to re-open a clock gate that came back closed.
+ *
+ * On MCXA all SRAM is retained by the SPC SRAM retention LDO, so there is no
+ * placement constraint on zephyr,sram.
+ */
+
+&deeppowerdown {
+	status = "okay";
+};

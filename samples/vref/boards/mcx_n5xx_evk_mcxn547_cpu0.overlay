@@ -1,0 +1,28 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * VREF setup for the device-PM test.
+ *
+ * The alias is what src/main.c resolves, so the sample never hard-codes a node
+ * label. status = "okay" is redundant on the boards whose dts already enables the
+ * reference and is repeated here so the case does not depend on that.
+ *
+ * regulator-initial-mode pins the 2.1 V buffer on in high-power mode, matching
+ * samples/drivers/adc/adc_dt. It also gives this test something to check: the
+ * mode is applied by regulator_common_init() at boot, and the phases ask whether
+ * it is still in effect afterwards.
+ */
+
+#include <zephyr/dt-bindings/regulator/nxp_vref.h>
+
+/ {
+	aliases {
+		test-vref = &vref;
+	};
+};
+
+&vref {
+	status = "okay";
+	regulator-initial-mode = <NXP_VREF_MODE_HIGH_POWER>;
+};

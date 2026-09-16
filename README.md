@@ -11,12 +11,16 @@ PM state machine and reports, in a greppable format, whether each transition beh
 - **Cases so far:**
   - LPADC (`nxp,lpc-lpadc`, driver `drivers/adc/adc_mcux_lpadc.c`)
   - LPCMP (`nxp,lpcmp`, driver `drivers/comparator/comparator_nxp_lpcmp.c`)
+  - PORT pin-mux (`nxp,port-pinmux`, driver `drivers/pinctrl/pinctrl_nxp_port.c`)
+  - VREF (`nxp,vref`, driver `drivers/regulator/regulator_nxp_vref.c`)
 
 ## Supported boards
 
-Both cases are enabled across the whole MCXN and MCXA line. Every board target below
-has an overlay in the sample's `boards/` directory, which Zephyr picks up automatically
-from the board target name — nothing extra to pass on the command line.
+LPADC, LPCMP and PORT are enabled across the whole MCXN and MCXA line. Every board
+target below has an overlay in the sample's `boards/` directory, which Zephyr picks up
+automatically from the board target name — nothing extra to pass on the command line.
+PORT needs no such overlay: its DT nodes are enabled by every SoC dtsi already, so that
+case has no `boards/` directory at all.
 
 | Family | Board targets |
 | --- | --- |
@@ -27,9 +31,11 @@ Every one of these SoCs `select HAS_PM` and declares the same four power states
 (`sleep`, `deepsleep`, `powerdown`, `deeppowerdown`), so the PM `.conf` overlays and
 `constraints.overlay` are family-wide; only the peripheral wiring is per-board.
 
+VREF only runs on the MCXN targets above: no MCXA SoC has an `nxp,vref` node.
+
 Not covered: the `cpu1` clusters and the `_ns`/TrustZone board variants. Both would need
 a different DT address map and, for `cpu1`, its own board glue; neither is exercised by
-the in-tree LPADC/LPCMP tests either.
+the in-tree tests either.
 
 ## Layout
 
@@ -40,6 +46,11 @@ samples/
     device-pm-case.json   #   which DT compatibles this case covers
   lpcmp/            # LPCMP comparator device-PM test
     boards/         #   per-board mux input, DAC and loopback GPIO
+    device-pm-case.json
+  port/             # PORT pin-mux device-PM test (no boards/: nothing to wire)
+    device-pm-case.json
+  vref/             # VREF regulator device-PM test (MCXN only)
+    boards/         #   per-board test-vref alias + initial mode
     device-pm-case.json
 results/            # what has actually run, one file per run
 scripts/            # build/flash helpers
@@ -119,6 +130,14 @@ Or use the helper:
 The LPCMP case follows the first four layers — swap `samples/lpadc` for `samples/lpcmp`,
 or use
 `scripts/run_lpcmp.sh <baseline|device|runtime|system> [-b BOARD] [--loopback] [--flash]`.
+
+The PORT and VREF cases follow all six layers, with the same overlay names, so the
+commands above work with `samples/lpadc` swapped for `samples/port` or `samples/vref`.
+Their helpers are
+`scripts/run_port.sh <baseline|device|runtime|system|sysmanaged|dpd> [-b BOARD] [--flash]`
+and
+`scripts/run_vref.sh <baseline|device|runtime|system|sysmanaged|dpd> [-b BOARD] [--flash]`.
+VREF has no `dpd-mcxa.overlay`, because it has no MCXA target.
 
 To build-sweep every board target at once:
 
@@ -218,3 +237,15 @@ children never see those actions.
 - `samples/lpcmp/README.md` — two driver defects: the comparator boots with
   `CCR0.CMP_EN` set while PM reports SUSPENDED, and `set_trigger_callback()` re-enables a
   suspended comparator behind PM's back.
+- `samples/port/README.md` — six layers over a driver whose PM callback has exactly one
+  hardware effect, the pin-mux clock gate: that `TURN_ON` re-opens it, that `SUSPEND` and
+  `TURN_OFF` leave it alone, and that init opens it without waiting for a `TURN_ON` that
+  may never come. One defect: `clock_control_mcux_syscon.c` has no `MCUX_PORT5_CLK` case
+  in either family branch, so on a part with a `portf` that has a real gate
+  (`frdm_mcxa577`) nothing ever re-opens it.
+- `samples/vref/README.md` — six layers over the reference driver's `TURN_ON`. It restores
+  the devicetree configuration bits and the trim a consumer asked for through
+  `set_voltage()`; it does not restore `regulator-initial-mode` and does not re-enable the
+  output, so after a Deep Power Down a consumer still holding an enabled reference reads a
+  dead bandgap and gets no error. The README argues both sides of whose job that is, and
+  the case proves the block itself recovers on a disable/enable cycle.

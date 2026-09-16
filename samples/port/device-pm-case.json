@@ -1,0 +1,9 @@
+{
+  "sample": "port",
+  "ip": "PORT",
+  "compatibles": ["nxp,port-pinmux"],
+  "drivers": [
+    "drivers/pinctrl/pinctrl_nxp_port.c",
+    "drivers/clock_control/clock_control_mcux_syscon.c"
+  ]
+}
