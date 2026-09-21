@@ -1,0 +1,26 @@
+{
+  "run": "20260916-port-vref-dapeng-pd-guard",
+  "date": "2026-09-16",
+  "sample": "port",
+  "where": "dapeng",
+  "note": "Verification re-run of the two layers that runtime device PM touches, after two changes on top of the earlier run of the same day: the NULL guard in pd_pm_action() (drivers/power_domain/power_domain_soc_state_change.c, not yet committed) and the corrected boot-state expectation in both samples, which now accept OFF as well as SUSPENDED for a device that names a power domain. The vref case is recorded in the companion file with the same run id.",
+  "targets": {
+    "frdm_mcxn947/mcxn947/cpu0": {
+      "job": "2309455",
+      "station": "1166@main",
+      "note": "Both layers now boot and both pass. Every pin-mux reports OFF at init with its clock gate open, runtime_get takes it to ACTIVE, runtime_put back to SUSPENDED, and the gate never closes -- which is the claim the case exists to make. The constraint checks in the system layer pass unchanged.",
+      "layers": {
+        "runtime": "pass",
+        "system": "pass"
+      }
+    }
+  },
+  "findings": [
+    {
+      "id": "pd-soc-state-change-null-deref",
+      "summary": "Fix confirmed on hardware.",
+      "detail": "Returning 0 from pd_pm_action() when pm_state_next_get() reports NULL. Before the guard both layers captured zero bytes on this board; after it they run to a verdict. See results/20260916-port-dapeng.json for the analysis.",
+      "fix_verified": "yes"
+    }
+  ]
+}

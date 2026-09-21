@@ -1,0 +1,75 @@
+{
+  "run": "20260916-port-dapeng",
+  "date": "2026-09-16",
+  "sample": "port",
+  "where": "dapeng",
+  "note": "First hardware run of the PORT case, against the pin-mux device-PM support of zephyrproject-rtos/zephyr#119026 (branch nxp-drivers-restore-after-power-loss, build 72cc1ec0f084). All six layers on four boards. Images were converted to Intel hex with arm-none-eabi-objcopy, flashed over `dapeng remote control flash` and captured over the forwarded serial stream; every layer was judged on the sample's own RESULT line.",
+  "targets": {
+    "frdm_mcxn947/mcxn947/cpu0": {
+      "job": "2309422",
+      "station": "1166@main",
+      "note": "porta..porte report their gate; portf has no gate constant in the HAL for this SoC and is reported as not observable. The runtime layer never reached its first printk: see the runtime-crash finding below. Re-run with the one-line power-domain guard applied, the same image boots and the layer's only failures are the boot-state expectation the sample has since been corrected for.",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "runtime": "fail",
+        "system": "fail",
+        "sysmanaged": "pass",
+        "dpd.mcxn": "pass"
+      }
+    },
+    "frdm_mcxn236": {
+      "job": "2309426",
+      "station": "19619@main",
+      "note": "Identical to frdm_mcxn947 layer for layer.",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "runtime": "fail",
+        "system": "fail",
+        "sysmanaged": "pass",
+        "dpd.mcxn": "pass"
+      }
+    },
+    "frdm_mcxa153": {
+      "job": "2309428",
+      "station": "4708@main",
+      "note": "Four PORT instances, all with a gate. The two layers that enter a low-power state print every check up to `forcing one ... transition` and then go quiet: this is the known MCXA wake-up defect, not a pin-mux result. The board came back after a `dapeng remote control powercycle` and re-ran the baseline layer clean.",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "runtime": "fail",
+        "system": "fail",
+        "sysmanaged": "blocked",
+        "dpd.mcxa": "blocked"
+      }
+    },
+    "frdm_mcxa577": {
+      "job": "2309429",
+      "station": "270191@main",
+      "note": "Six PORT instances, all six with a gate, and the one board in the set that can observe PORT5. The device layer fails on exactly one check -- `pinmux@e3000 TURN_ON re-opens the clock gate` -- which is the PORT5 gap the case was written to report: clock_control_mcux_syscon.c has no MCUX_PORT5_CLK case, so clock_control_on() returns without touching the gate. Every other instance and every other check in that layer passes. Same MCXA wake-up block on the last two layers, same clean recovery after a powercycle.",
+      "layers": {
+        "baseline": "pass",
+        "device": "fail",
+        "runtime": "fail",
+        "system": "fail",
+        "sysmanaged": "blocked",
+        "dpd.mcxa": "blocked"
+      }
+    }
+  },
+  "findings": [
+    {
+      "id": "pd-soc-state-change-null-deref",
+      "summary": "Any build with device PM but without CONFIG_PM hard-faults at boot on a board whose devicetree has a power-domain-soc-state-change node.",
+      "detail": "pd_pm_action() in drivers/power_domain/power_domain_soc_state_change.c opens with `enum pm_state state = pm_state_next_get(_current_cpu->id)->state;`. With CONFIG_PM=n, pm_state_next_get() is an inline stub that returns NULL, so this dereferences NULL for every action, including the ones the domain ignores. CONFIG_PM_DEVICE_RUNTIME_DEFAULT_ENABLE reaches it during PRE_KERNEL_1: kernel/device.c calls pm_device_runtime_auto_enable() straight after each device's init, and enabling runtime PM on a device that is ACTIVE runs SUSPEND on it. The domain device is ACTIVE at that point, so the fault happens before the console exists and the board captures zero bytes. Reproduced on all four boards, in both the PORT and the VREF case, in the runtime layer only (the device layer never runs a PM action on the domain, and every CONFIG_PM=y layer gets a non-NULL state).",
+      "fix_verified": "Returning 0 when pm_state_next_get() reports NULL. Rebuilt sample.pm.port.runtime for frdm_mcxn947 with that guard, reflashed on job 2309422: the image boots and runs the whole layer."
+    },
+    {
+      "id": "pd-soc-state-change-no-turn-on-under-runtime-pm",
+      "summary": "A device on a power-domain-soc-state-change domain never receives TURN_ON when runtime device PM is enabled.",
+      "detail": "With runtime PM the domain device is suspended right after its own init, so pm_device_is_powered() is false when a child initialises and pm_device_driver_init() skips TURN_ON and leaves the child in OFF. It does not arrive later either: the PM core delegates TURN_ON to the domain driver, and pd_pm_action() forwards it only when the next system power state is one of its onoff-power-states, which an ordinary runtime resume is not. A runtime get therefore takes the child straight from OFF to ACTIVE with a bare RESUME. For the pin-mux this is invisible in the register view because pinctrl_mcux_init() opens the clock gate itself rather than waiting for TURN_ON -- which is exactly the argument for that call. The VREF case shows the same mechanism with a visible cost; see the vref run.",
+      "fix_verified": "no"
+    }
+  ]
+}

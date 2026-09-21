@@ -1,0 +1,55 @@
+{
+  "run": "20260916-vref-dapeng",
+  "date": "2026-09-16",
+  "sample": "vref",
+  "where": "dapeng",
+  "note": "First hardware run of the VREF case, against the regulator device-PM support of zephyrproject-rtos/zephyr#119026 (branch nxp-drivers-restore-after-power-loss, build 72cc1ec0f084). All six layers on the two MCXN boards that have a vref node wired up. Images were converted to Intel hex with arm-none-eabi-objcopy, flashed over `dapeng remote control flash` and captured over the forwarded serial stream.",
+  "targets": {
+    "frdm_mcxn947/mcxn947/cpu0": {
+      "job": "2309422",
+      "station": "1166@main",
+      "note": "The board overlay asks for NXP_VREF_MODE_HIGH_POWER, and the trim variant resolves to TRIM2V1 as expected for this SoC. Baseline reads CSR 0x00010838 -- the three devicetree bits plus HI_PWR_LV and BUF21EN from the mode -- and the output reads stable within the driver's startup delay. The device layer proves both restore branches: after a clobber, TURN_ON puts the untrimmed device back at the bottom of the range (0x0, 1000000 uV) and, once a consumer has set a voltage, restores that trim instead (0x6, 1600000 uV). Deep Sleep is transparent. Deep Power Down fails the two checks the case documents as expected failures, and the disable/enable recovery afterwards passes, so the block itself comes back healthy.",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "runtime": "fail",
+        "system": "fail",
+        "sysmanaged": "pass",
+        "dpd.mcxn": "fail"
+      }
+    },
+    "frdm_mcxn236": {
+      "job": "2309426",
+      "station": "19619@main",
+      "note": "Identical to frdm_mcxn947 layer for layer, register value for register value.",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "runtime": "fail",
+        "system": "fail",
+        "sysmanaged": "pass",
+        "dpd.mcxn": "fail"
+      }
+    }
+  },
+  "expected_failures": {
+    "dpd.mcxn": [
+      "regulator-initial-mode restored after the transition -- CSR comes back 0x00000038: the devicetree bits are restored by TURN_ON, HI_PWR_LV and BUF21EN are not, because the mode is applied only by regulator_common_init() at boot.",
+      "output stable after the transition for a held reference -- VREFST reads 0 although the reference count still shows the consumer's reference. The trim survives in retained SRAM and the voltage still reads 1600000 uV, so what is missing is the re-enable, not the setting."
+    ]
+  },
+  "findings": [
+    {
+      "id": "vref-unconfigured-under-runtime-pm",
+      "summary": "With runtime device PM the vref block is never given its devicetree configuration, because the TURN_ON that carries it never runs.",
+      "detail": "Baseline in the runtime and system layers reads CSR 0x00010800: the mode bits that regulator_common_init() writes are there, the three devicetree bits (ICOMPEN, CHOPEN, REGEN) are not. The device boots in OFF rather than SUSPENDED because its domain -- &core_domain, a power-domain-soc-state-change node -- is itself runtime enabled and is suspended right after its own init, so pm_device_is_powered() is already false when regulator_nxp_vref_init() runs and pm_device_driver_init() skips TURN_ON. A later pm_device_runtime_get() does not repair it: that domain forwards TURN_ON only on the system state changes it lists, so the device goes from OFF to ACTIVE on a bare RESUME and CSR still reads 0x80010807 after the cycle. A consumer can enable the output and set a voltage in this state, so nothing reports an error -- the reference just runs without the current compensation, chopping and internal regulator the devicetree asked for. Reproduced on both boards.",
+      "fix_verified": "no"
+    },
+    {
+      "id": "pd-soc-state-change-null-deref",
+      "summary": "The runtime layer captured zero bytes on both boards: a NULL dereference in the power-domain driver at PRE_KERNEL_1.",
+      "detail": "Same root cause as the PORT run; see results/20260916-port-dapeng.json for the analysis and the verified one-line guard.",
+      "fix_verified": "in the port run"
+    }
+  ]
+}

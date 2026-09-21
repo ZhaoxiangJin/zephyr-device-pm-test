@@ -1,0 +1,26 @@
+{
+  "run": "20260916-vref-dapeng-pd-guard",
+  "date": "2026-09-16",
+  "sample": "vref",
+  "where": "dapeng",
+  "note": "Verification re-run of the two layers that runtime device PM touches, after the NULL guard in pd_pm_action() (drivers/power_domain/power_domain_soc_state_change.c, not yet committed) and the corrected boot-state expectation in the sample. Both layers now boot; both still fail, on exactly the two checks that describe the defect, which is the intended result.",
+  "targets": {
+    "frdm_mcxn947/mcxn947/cpu0": {
+      "job": "2309455",
+      "station": "1166@main",
+      "note": "The state check passes now that OFF is accepted, and the remaining two failures are the finding: `CSR carries the devicetree configuration bits at init` and `configuration bits present after a runtime get/put cycle`. The device is never handed a TURN_ON, so regulator_nxp_vref_configure_hw() never runs; the mode bits are present because regulator_common_init() writes them from init. Everything else in both layers passes -- the output is stable, a voltage can be set and read back, and no power-state constraint is held on the reference's behalf.",
+      "layers": {
+        "runtime": "fail",
+        "system": "fail"
+      }
+    }
+  },
+  "findings": [
+    {
+      "id": "vref-unconfigured-under-runtime-pm",
+      "summary": "Still open: with runtime device PM the vref block never receives its devicetree configuration.",
+      "detail": "Unchanged by the power-domain NULL guard, which only stops the crash that hid this layer. The fix has to be either a driver one (apply the configuration from init as well as from TURN_ON, the way pinctrl_mcux_init() opens its clock gate) or a domain one (have power-domain-soc-state-change consider itself powered while the SoC is running, so children are turned on at init and only lose power on the states it lists).",
+      "fix_verified": "no"
+    }
+  ]
+}
