@@ -1,0 +1,23 @@
+{
+  "run": "20260921-lpadc-dapeng-pm-fixes",
+  "date": "2026-09-21",
+  "case": "lpadc",
+  "where": "dapeng",
+  "zephyr": "4d84fa1cdc51",
+  "harness": "0f42a1e",
+  "targets": {
+    "frdm_mcxn947/mcxn947/cpu0": {
+      "job": "2314045",
+      "station": "1166",
+      "note": "built against the backup/lpadc-pm-fixes-rebased27-1789476385 worktree; dpd was reflashed and reset after a power cycle because Deep Power Down drops the station's debug port",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      }
+    }
+  }
+}
