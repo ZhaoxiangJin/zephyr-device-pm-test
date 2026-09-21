@@ -1,0 +1,18 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Enable Deep Power Down. Suspend-to-RAM is opt-in in the SoC devicetree, so the
+ * application has to ask for it, and asking for it is also what arms the SoC's
+ * core_domain -- whose onoff-power-states list names this state and nothing else.
+ * That domain is what hands a driver the TURN_OFF/TURN_ON pair it needs to restore
+ * a register block that came back from reset, which is the whole subject of this
+ * layer.
+ *
+ * Enabling the state is also what sets CONFIG_PM_S2RAM, which has no prompt of its
+ * own.
+ */
+
+&deeppowerdown {
+	status = "okay";
+};

@@ -1,0 +1,9 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+name: pm-runtime
+description: |
+  Runtime device PM layer: pm_device_runtime_get()/put() reference counting on a
+  device that boots SUSPENDED. See docs/pm-layers.md.
+append:
+  EXTRA_CONF_FILE: pm-runtime.conf

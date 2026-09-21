@@ -1,0 +1,13 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+name: pm-test
+build:
+  cmake: .
+  kconfig: Kconfig
+  settings:
+    # Makes snippets/pm-*/ findable, which is how a layer is selected. Without
+    # this a case would be back to spelling out EXTRA_CONF_FILE by hand.
+    snippet_root: .
+tests:
+  - tests

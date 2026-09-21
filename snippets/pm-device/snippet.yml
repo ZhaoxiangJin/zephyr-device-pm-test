@@ -1,0 +1,9 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+name: pm-device
+description: |
+  Device PM layer: drive a driver's SUSPEND/RESUME callback directly through
+  pm_device_action_run(). See docs/pm-layers.md.
+append:
+  EXTRA_CONF_FILE: pm-device.conf

@@ -1,0 +1,11 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+name: pm-system
+description: |
+  System PM constraint layer: the per-operation pm_policy_device_power_lock and
+  the node's zephyr,disabling-power-states. The list of states is per case, so
+  the case supplies its own constraints.overlay on top of this snippet. See
+  docs/pm-layers.md.
+append:
+  EXTRA_CONF_FILE: pm-system.conf

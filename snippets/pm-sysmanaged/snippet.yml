@@ -1,0 +1,9 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+name: pm-sysmanaged
+description: |
+  System-managed device PM layer: pm_suspend_devices()/pm_resume_devices() around
+  one forced Deep Sleep. See docs/pm-layers.md.
+append:
+  EXTRA_CONF_FILE: pm-sysmanaged.conf

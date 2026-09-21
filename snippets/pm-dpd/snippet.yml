@@ -1,0 +1,21 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+name: pm-dpd
+description: |
+  Deep Power Down layer: the power domain's TURN_OFF/TURN_ON restoring a register
+  block that came back from reset. See docs/pm-layers.md.
+
+  The MCXN retained-SRAM constraint is applied from the board target here, which
+  is what lets every case have one dpd scenario instead of one per SoC family.
+append:
+  EXTRA_CONF_FILE: pm-dpd.conf
+  EXTRA_DTC_OVERLAY_FILE: pm-dpd.overlay
+
+boards:
+  # Matched against "${BOARD}/${BOARD_QUALIFIERS}", anchored, so this covers
+  # frdm_mcxn236, frdm_mcxn947/mcxn947/cpu0, mcx_n9xx_evk/..., mcx_n5xx_evk/...
+  # and nothing in the MCXA family.
+  /.*mcxn.*/:
+    append:
+      EXTRA_DTC_OVERLAY_FILE: mcxn-retained-sram.overlay

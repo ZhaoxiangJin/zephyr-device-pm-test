@@ -1,0 +1,102 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+config PM_TEST
+	bool "Device power management test support"
+	help
+	  Support shared by every case in this repository: the layer identity,
+	  the one forced low-power transition, and reviving the console after a
+	  transition that reset its register block.
+
+if PM_TEST
+
+choice PM_TEST_LAYER
+	prompt "PM layer under test"
+	default PM_TEST_LAYER_BASELINE
+	help
+	  Set by one of the snippets/pm-* snippets, not by hand. Each layer is
+	  defined in docs/pm-layers.md, brings in the Kconfig it needs from
+	  right here, and asserts its own premises in include/pm_test/layer.h.
+	  That is what lets a snippet name a layer in one line.
+
+config PM_TEST_LAYER_BASELINE
+	bool "baseline: no power management at all"
+
+config PM_TEST_LAYER_DEVICE
+	bool "device: pm_device_action_run() straight at the driver"
+	select PM_DEVICE
+
+config PM_TEST_LAYER_RUNTIME
+	bool "runtime: pm_device_runtime_get()/put() reference counting"
+	select PM_DEVICE
+	select PM_DEVICE_RUNTIME
+	# Without DEFAULT_ENABLE every get()/put() returns 0 without reaching the
+	# driver, so the layer would pass while testing nothing. layer.h asserts it.
+	select PM_DEVICE_RUNTIME_DEFAULT_ENABLE
+
+config PM_TEST_LAYER_SYSTEM
+	bool "system: per-device power state constraints"
+	select PM
+	select PM_DEVICE
+	select PM_DEVICE_RUNTIME
+	select PM_DEVICE_RUNTIME_DEFAULT_ENABLE
+	select PM_POLICY_DEVICE_CONSTRAINTS
+
+config PM_TEST_LAYER_SYSMANAGED
+	bool "sysmanaged: pm_suspend_devices()/pm_resume_devices() sweep"
+	select PM
+	select PM_DEVICE
+	select PM_DEVICE_SYSTEM_MANAGED
+	imply WUC
+	imply COUNTER
+	imply COUNTER_MCUX_LPTMR_ALARM
+
+config PM_TEST_LAYER_DPD
+	bool "dpd: power domain TURN_OFF/TURN_ON across Deep Power Down"
+	select PM
+	select PM_DEVICE
+	select PM_DEVICE_SYSTEM_MANAGED
+	imply WUC
+	imply COUNTER
+	imply COUNTER_MCUX_LPTMR_ALARM
+	help
+	  CONFIG_PM_S2RAM has no prompt of its own: it follows from an enabled
+	  suspend-to-ram power state in the devicetree, which is what the pm-dpd
+	  snippet's overlay does. layer.h asserts that it came out set, because a
+	  dpd build without it degrades silently into sysmanaged.
+
+endchoice
+
+config PM_TEST_LAYER_NAME
+	string
+	default "baseline" if PM_TEST_LAYER_BASELINE
+	default "device" if PM_TEST_LAYER_DEVICE
+	default "runtime" if PM_TEST_LAYER_RUNTIME
+	default "system" if PM_TEST_LAYER_SYSTEM
+	default "sysmanaged" if PM_TEST_LAYER_SYSMANAGED
+	default "dpd" if PM_TEST_LAYER_DPD
+	help
+	  The layer name as docs/pm-layers.md and results/*.json spell it. Not
+	  user-configurable; it follows the choice above.
+
+# Every board in docs/boards.md is reached through a station that programs a hex,
+# so a build without one is not a runnable test even if it compiled. Not all
+# boards default this on, so the harness asks for it rather than each case.
+config PM_TEST_FORCE_BUILD_OUTPUT_HEX
+	bool
+	default y
+	select BUILD_OUTPUT_HEX
+
+# A test that lets main() return lets the idle thread park the core in WFI, which
+# powers down the DAP and makes the next flash fail (and, under CONFIG_PM, enters
+# a low-power state behind the test's back). ZTEST_NO_YIELD spins with interrupts
+# locked instead -- after end_report(), so the summary twister keys on still gets
+# out. Interrupts stay locked from then on, which is why layer.h also insists the
+# log be immediate if it is enabled at all: a deferred log's thread would never
+# run again, and the run would capture as truncated.
+config PM_TEST_FORCE_ZTEST_NO_YIELD
+	bool
+	default y
+	select ZTEST_NO_YIELD
+
+endif # PM_TEST
