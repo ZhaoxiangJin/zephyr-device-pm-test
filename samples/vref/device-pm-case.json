@@ -1,6 +1,0 @@
-{
-  "sample": "vref",
-  "ip": "VREF",
-  "compatibles": ["nxp,vref"],
-  "drivers": ["drivers/regulator/regulator_nxp_vref.c"]
-}

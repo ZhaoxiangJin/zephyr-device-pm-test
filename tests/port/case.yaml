@@ -1,0 +1,15 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+#
+# What this case covers, for the Device PM report. See docs/authoring-a-case.md.
+#
+# The clock driver is listed because the pin-mux PM callback's only hardware
+# effect goes through it: see docs/findings.md, port5-clock-gate-never-reopened.
+
+case: port
+ip: PORT
+compatibles:
+  - nxp,port-pinmux
+drivers:
+  - drivers/pinctrl/pinctrl_nxp_port.c
+  - drivers/clock_control/clock_control_mcux_syscon.c

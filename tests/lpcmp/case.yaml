@@ -1,0 +1,11 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+#
+# What this case covers, for the Device PM report. See docs/authoring-a-case.md.
+
+case: lpcmp
+ip: LPCMP
+compatibles:
+  - nxp,lpcmp
+drivers:
+  - drivers/comparator/comparator_nxp_lpcmp.c

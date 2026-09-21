@@ -388,17 +388,29 @@ static void port_runtime_cycle(const struct port_case *p)
 	int err;
 
 	report_state(p->dev, "init");
-	snprintk(msg, sizeof(msg), "%s starts SUSPENDED under runtime PM", p->dev->name);
-	PM_TEST_CHECK(state_is(p->dev, PM_DEVICE_STATE_SUSPENDED), msg);
+	/* Two boot states are legal here. A node with no power domain lands in
+	 * SUSPENDED: pm_device_driver_init() ran TURN_ON and then stopped short of
+	 * RESUME because runtime PM is about to take over. A node that names a
+	 * domain lands in OFF instead, because the domain device is itself runtime
+	 * enabled -- it is suspended right after its own init, so by the time the
+	 * pin-mux initialises at PRE_KERNEL_1 pm_device_is_powered() is already
+	 * false and TURN_ON is skipped. See README.md: with
+	 * power-domain-soc-state-change that TURN_ON never arrives later either,
+	 * because that domain only forwards TURN_ON on the system state changes it
+	 * lists.
+	 */
+	snprintk(msg, sizeof(msg), "%s starts SUSPENDED or OFF under runtime PM", p->dev->name);
+	PM_TEST_CHECK(state_is(p->dev, PM_DEVICE_STATE_SUSPENDED) ||
+		      state_is(p->dev, PM_DEVICE_STATE_OFF), msg);
 
 	/* The interesting claim of this layer: a pin-mux that PM calls SUSPENDED
-	 * is still fully usable, because init opened the gate directly instead of
-	 * leaving it to a RESUME that may never come. If this fails, every driver
-	 * that applies its pin state from its own init faults on an unclocked
-	 * block.
+	 * or OFF is still fully usable, because init opened the gate directly
+	 * instead of leaving it to a TURN_ON or RESUME that may never come. If this
+	 * fails, every driver that applies its pin state from its own init faults on
+	 * an unclocked block.
 	 */
 	if (observable) {
-		snprintk(msg, sizeof(msg), "%s gate open while SUSPENDED at init",
+		snprintk(msg, sizeof(msg), "%s gate open while not ACTIVE at init",
 			 p->dev->name);
 		PM_TEST_CHECK(port_gate_is_open(gate), msg);
 	}

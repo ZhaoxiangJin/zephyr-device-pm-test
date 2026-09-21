@@ -443,15 +443,24 @@ static void phase_runtime_pm(void)
 	printk("PM-TEST: phase runtime-pm\n");
 
 	report_state("init");
-	PM_TEST_CHECK(state_is(PM_DEVICE_STATE_SUSPENDED),
-		      "device starts SUSPENDED under runtime PM");
+	/* Two boot states are legal. Without a power domain the device lands in
+	 * SUSPENDED: pm_device_driver_init() ran TURN_ON and stopped short of RESUME
+	 * because runtime PM is about to take over. With a domain it lands in OFF,
+	 * because the domain device is runtime enabled too and is suspended right
+	 * after its own init, so pm_device_is_powered() is already false when the
+	 * regulator initialises and TURN_ON is skipped. The vref node names
+	 * &core_domain, so this is the OFF case, and the hardware never gets the
+	 * devicetree configuration -- see the baseline phase and README.md.
+	 */
+	PM_TEST_CHECK(state_is(PM_DEVICE_STATE_SUSPENDED) || state_is(PM_DEVICE_STATE_OFF),
+		      "device starts SUSPENDED or OFF under runtime PM");
 
 	/* The claim of this layer: the reference works while PM calls the device
 	 * SUSPENDED. The regulator API takes no runtime PM reference of its own, so
 	 * a consumer that enabled the output never asked PM for anything -- and the
 	 * driver's SUSPEND is a no-op precisely so that output keeps running.
 	 */
-	PM_TEST_CHECK(vref_output_stable(), "output stable while SUSPENDED at init");
+	PM_TEST_CHECK(vref_output_stable(), "output stable while not ACTIVE at init");
 
 	err = pm_device_runtime_get(VREF_DEV);
 	PM_TEST_CHECK(err == 0, "runtime_get succeeds");
@@ -463,8 +472,13 @@ static void phase_runtime_pm(void)
 		      "device is SUSPENDED after runtime_put");
 
 	PM_TEST_CHECK(vref_output_stable(), "output still stable after runtime_put");
+	/* A runtime get resumes the domain before the device, so this is the last
+	 * chance for the block to be configured. It is not taken: the domain
+	 * forwards TURN_ON only on the system state changes it lists, and an
+	 * ordinary resume is not one of them.
+	 */
 	PM_TEST_CHECK((base->CSR & VREF_DT_CSR_BITS) == VREF_DT_CSR_BITS,
-		      "configuration bits survive the runtime cycle");
+		      "configuration bits present after a runtime get/put cycle");
 	report_hw("after-put");
 }
 #endif /* CONFIG_PM_DEVICE_RUNTIME */

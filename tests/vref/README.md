@@ -187,13 +187,40 @@ above.
 ```sh
 ... -- -DEXTRA_CONF_FILE=overlay-pm-runtime.conf
 ```
-- boots **SUSPENDED**, and the output is **stable anyway**. The regulator API takes
-  no runtime PM reference of its own, so a consumer that enabled the output never
+- boots **SUSPENDED or OFF**, and the output is **stable anyway**. The regulator API
+  takes no runtime PM reference of its own, so a consumer that enabled the output never
   asked PM for anything — and the driver's `SUSPEND` is a no-op precisely so that
   output keeps running.
 - `runtime_get` → ACTIVE; `runtime_put` → SUSPENDED
 - the output is still stable and the configuration bits are still set after the
   `put`
+
+#### On silicon the configuration bits are *not* set — and that is the finding
+
+The vref node names `&core_domain`. That domain device is runtime enabled too, so
+`pm_device_runtime_auto_enable()` suspends it right after its own init, and by the time
+`regulator_nxp_vref_init()` runs `pm_device_is_powered()` already answers false:
+`pm_device_driver_init()` skips `TURN_ON`, so `regulator_nxp_vref_configure_hw()` never
+runs and the device settles in OFF rather than SUSPENDED.
+
+Nor does a later `pm_device_runtime_get()` repair it.
+`power-domain-soc-state-change` forwards `TURN_ON` to its children only when the next
+system power state is one of its `onoff-power-states`, and an ordinary resume is not one
+of them — the device goes from OFF straight to ACTIVE on a bare `RESUME`.
+
+So in this layer the CSR reads `0x00010800` at boot and `0x80010807` after a full
+get/put cycle: `HI_PWR_LV` and `BUF21EN` are there because `regulator_common_init()`
+writes the mode from `init`, but `ICOMPEN`, `CHOPEN` and `REGEN` — the three devicetree
+properties — never arrive. Nothing reports an error: `regulator_enable()` succeeds,
+`VREFST` comes up, a voltage can be set and read back. The reference simply runs
+without the current compensation, chop oscillator and internal regulator the board asked
+for. The case reports this as a failure in the baseline phase (`CSR carries the
+devicetree configuration bits at init`) and again after the runtime cycle.
+
+The PORT case hits the identical mechanism and shows no symptom, because
+`pinctrl_mcux_init()` opens its clock gate itself instead of leaving it to `TURN_ON`.
+That is the argument for doing hardware setup from `init` as well as from `TURN_ON`
+whenever a device sits on this kind of domain.
 
 ### System PM + constraints — `overlay-pm-system.conf` + `constraints.overlay`
 ```sh
@@ -261,5 +288,13 @@ scripts/run_vref.sh <baseline|device|runtime|system|sysmanaged|dpd> [-b BOARD] [
 - `NXP_VREF_MODE_LOW_POWER` and `NXP_VREF_MODE_STANDBY` are not exercised. The
   mode question this case asks is whether the configured mode survives, not
   whether each mode works.
+- **A build with device PM but without `CONFIG_PM` faults at boot**, before the console
+  exists, so the runtime layer captures zero bytes rather than a stack dump. The cause is
+  in the power-domain driver, not in the regulator: `pd_pm_action()` in
+  `drivers/power_domain/power_domain_soc_state_change.c` dereferences
+  `pm_state_next_get()`, which is a `NULL`-returning stub when `CONFIG_PM=n`, and
+  `CONFIG_PM_DEVICE_RUNTIME_DEFAULT_ENABLE` reaches it at `PRE_KERNEL_1`. See
+  `samples/port/README.md` for the full path and the verified one-line guard.
 - Not covered: the `_ns`/TrustZone board variants, and the `nxp,vrefv1` driver on
   MCXC.
+

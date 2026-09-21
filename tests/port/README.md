@@ -138,10 +138,27 @@ Per instance, in this order — the only sequence `pm_device_action_run()` accep
 ```sh
 ... -- -DEXTRA_CONF_FILE=overlay-pm-runtime.conf
 ```
-- boots **SUSPENDED**, and the gate is **open anyway** — the interesting claim of this
-  layer, and the reason `pinctrl_mcux_init()` cannot leave the clock to `TURN_ON`
+- boots **SUSPENDED or OFF**, and the gate is **open anyway** — the interesting claim of
+  this layer, and the reason `pinctrl_mcux_init()` cannot leave the clock to `TURN_ON`.
+  On these SoCs it is always OFF, because the pin-mux nodes name `&core_domain`: the
+  domain device is runtime enabled too, `pm_device_runtime_auto_enable()` suspends it
+  right after its own init, and by the time a pin-mux initialises at `PRE_KERNEL_1`
+  `pm_device_is_powered()` already answers false, so `pm_device_driver_init()` skips
+  `TURN_ON`. It does not arrive later either — see below.
 - `runtime_get` → ACTIVE; `runtime_put` → SUSPENDED
 - the gate is still open after the `put`: runtime suspend of a pin-mux must not gate it
+
+#### `TURN_ON` never runs in this layer
+
+`power-domain-soc-state-change` forwards `TURN_ON` to its children only when the *next
+system power state* is one of its `onoff-power-states`, and an ordinary runtime resume is
+not one of them. So a child that boots OFF goes straight to ACTIVE on a bare `RESUME` and
+never sees `TURN_ON` at all, for the life of the application.
+
+For the pin-mux the register view is unaffected — the gate is open because
+`pinctrl_mcux_init()` opened it, which is exactly the argument for that call. A driver
+that puts its hardware configuration *only* in `TURN_ON` is not so lucky; the VREF case
+next door shows the same mechanism with a visible cost.
 
 ### System PM + constraints — `overlay-pm-system.conf` + `constraints.overlay`
 ```sh
@@ -195,10 +212,26 @@ scripts/run_port.sh <baseline|device|runtime|system|sysmanaged|dpd> [-b BOARD] [
 
 ## Notes / follow-ups
 
+- **A build with device PM but without `CONFIG_PM` faults at boot on every board this
+  case targets, and it is not the pin-mux's fault.** `pd_pm_action()` in
+  `drivers/power_domain/power_domain_soc_state_change.c` opens with
+  `pm_state_next_get(_current_cpu->id)->state`, and with `CONFIG_PM=n` that function is a
+  stub returning `NULL`. `CONFIG_PM_DEVICE_RUNTIME_DEFAULT_ENABLE` reaches it during
+  `PRE_KERNEL_1`, because `kernel/device.c` calls `pm_device_runtime_auto_enable()` right
+  after each device's init and enabling runtime PM on an ACTIVE device runs `SUSPEND` on
+  it. The fault therefore lands before the console exists and the board prints nothing at
+  all — the runtime layer captures zero bytes rather than a stack dump. Returning 0 when
+  `pm_state_next_get()` reports `NULL` fixes it; verified on `frdm_mcxn947`. Any board
+  whose devicetree grows a `power-domain-soc-state-change` node inherits this, so it wants
+  fixing in the same series that adds the node.
 - The pad configuration itself is not asserted on, only the gate. Proving that the PCR
   contents survive a gate cycle would mean reading the PCR array, and the sample
   deliberately never touches it; the Deep Power Down layer gets a stronger answer for
   free, because the console only works if the pin state was successfully re-applied.
 - `clock_control_off()` is not exercised: it has no PORT case, so calling it would assert
   nothing about the driver.
+- The two low-power layers cannot run on MCXA: the board prints every check and then goes
+  quiet at the transition, which is the known MCXA wake-up defect and says nothing about
+  the pin-mux. `dapeng remote control powercycle` brings the board back.
 - Not covered: the `cpu1` clusters and the `_ns`/TrustZone board variants.
+
