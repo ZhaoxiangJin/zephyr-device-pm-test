@@ -1,29 +1,23 @@
 # Copyright 2026 NXP
 # SPDX-License-Identifier: Apache-2.0
 #
-# NOTE: the Deep Power Down scenario is expected to FAIL on every target below,
-# on two checks, and that failure is the point of the scenario. After a real
-# power loss the driver's TURN_ON restores the devicetree configuration bits and
-# the consumer's trim, but it opens with regulator_nxp_vref_disable() and never
-# re-applies regulator-initial-mode -- so a consumer that still holds an enabled
-# reference is left with a dead bandgap in STANDBY mode and gets no error saying
-# so. The scenario then proves the block itself is fine by taking the output back
-# with a disable/enable cycle. See README.md for the argument about whose job the
-# re-enable is; every other scenario, Deep Sleep included, is expected to pass.
+# One scenario per layer, and the layer is named once, as a snippet. Per-board VREF
+# wiring lives in boards/<board_target>.overlay and is picked up automatically.
 #
-# Per-board wiring lives in boards/<board_target>.overlay -- the test-vref alias
-# and regulator-initial-mode -- and is picked up automatically, so the system case
-# stacks constraints.overlay with EXTRA_DTC_OVERLAY_FILE rather than replacing
-# DTC_OVERLAY_FILE.
+# There is no MCXA target: no MCXA SoC has an nxp,vref node. The MCXC parts have a
+# vref, but it is compatible nxp,vrefv1 and a different driver.
 #
-# There is no MCXA scenario: no MCXA SoC has an nxp,vref node. The MCXC parts have
-# a vref, but it is compatible nxp,vrefv1 and a different driver.
+# The dpd scenario is expected to FAIL, on the two checks src/test_lowpower.c names,
+# and that failure is the point of the scenario. Every other one is expected to
+# pass except in the runtime and system layers on a tree without the power-domain
+# TURN_ON fix; see tests/vref/README.md.
 
 common:
   tags:
     - pm
     - regulator
     - drivers
+  harness: ztest
   platform_allow:
     - frdm_mcxn947/mcxn947/cpu0
     - frdm_mcxn947/mcxn947/cpu0/qspi
@@ -31,39 +25,35 @@ common:
     - mcx_n9xx_evk/mcxn947/cpu0
     - mcx_n9xx_evk/mcxn947/cpu0/qspi
     - mcx_n5xx_evk/mcxn547/cpu0
-  harness: console
-  harness_config:
-    type: multi_line
-    ordered: false
-    regex:
-      - "PM-TEST: RESULT PASS"
 
 tests:
-  # Baseline: default prj.conf, no PM symbols at all.
-  sample.pm.vref.baseline: {}
+  # The control. No snippet, so lib/pm_test's layer choice falls back to baseline.
+  drivers.pm.vref.baseline: {}
 
-  sample.pm.vref.device:
-    extra_args:
-      - EXTRA_CONF_FILE=overlay-pm-device.conf
+  drivers.pm.vref.device:
+    required_snippets:
+      - pm-device
 
-  sample.pm.vref.runtime:
-    extra_args:
-      - EXTRA_CONF_FILE=overlay-pm-runtime.conf
+  drivers.pm.vref.runtime:
+    required_snippets:
+      - pm-runtime
 
-  sample.pm.vref.system:
+  # Which states the block does not survive is a property of this peripheral, so
+  # the state list is the one thing a layer snippet cannot supply. Stacked with
+  # EXTRA_DTC_OVERLAY_FILE so boards/<board_target>.overlay still applies.
+  drivers.pm.vref.system:
+    required_snippets:
+      - pm-system
     extra_args:
-      - EXTRA_CONF_FILE=overlay-pm-system.conf
       - EXTRA_DTC_OVERLAY_FILE=constraints.overlay
 
-  sample.pm.vref.sysmanaged:
-    extra_args:
-      - EXTRA_CONF_FILE=overlay-pm-sysmanaged.conf
+  drivers.pm.vref.sysmanaged:
+    required_snippets:
+      - pm-sysmanaged
 
-  # Deep Power Down resets the VREF register block, so the core domain has to hand
-  # the driver a TURN_OFF/TURN_ON pair around the transition. This is the only
-  # scenario in which the driver's TURN_ON does real work, and the only one that
-  # can answer what it does not restore.
-  sample.pm.vref.dpd.mcxn:
-    extra_args:
-      - EXTRA_CONF_FILE=overlay-pm-sysmanaged.conf
-      - EXTRA_DTC_OVERLAY_FILE=dpd-mcxn.overlay
+  # The snippet applies the MCXN retained-SRAM constraint from the board target, so
+  # this case needs no overlay of its own even though the driver's data -- and with
+  # it the trim a consumer asked for -- has to survive in that window.
+  drivers.pm.vref.dpd:
+    required_snippets:
+      - pm-dpd

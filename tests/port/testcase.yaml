@@ -1,16 +1,11 @@
 # Copyright 2026 NXP
 # SPDX-License-Identifier: Apache-2.0
 #
-# NOTE: the two Deep Power Down scenarios are expected to FAIL on any board whose
-# SoC has a portf -- frdm_mcxa577 among the targets below. The pin-mux driver asks
-# clock_control_on() to re-open the gate, and clock_control_mcux_syscon.c has no
-# MCUX_PORT5_CLK case in either family branch, so PORT5 is the one instance whose
-# gate is never re-opened. On MCXN portf has no gate constant in the HAL at all,
-# so there the case reports it as not observable instead of failing. See README.md.
+# One scenario per layer, and the layer is named once, as a snippet.
 #
 # The pin-mux nodes are enabled by every MCXN/MCXA SoC dtsi and need no wiring, so
-# this case has no boards/ directory: src/main.c walks every enabled
-# nxp,port-pinmux node with DT_FOREACH_STATUS_OKAY(). The system case still stacks
+# this case has no boards/ directory: src/port.c walks every enabled nxp,port-pinmux
+# node with DT_FOREACH_STATUS_OKAY(). The system scenario still stacks
 # constraints.overlay with EXTRA_DTC_OVERLAY_FILE rather than replacing
 # DTC_OVERLAY_FILE, so a board overlay added later is still picked up.
 
@@ -19,6 +14,7 @@ common:
     - pm
     - pinctrl
     - drivers
+  harness: ztest
   platform_allow:
     # MCXN
     - frdm_mcxn947/mcxn947/cpu0
@@ -35,60 +31,33 @@ common:
     - frdm_mcxa346
     - frdm_mcxa366
     - frdm_mcxa577
-  harness: console
-  harness_config:
-    type: multi_line
-    ordered: false
-    regex:
-      - "PM-TEST: RESULT PASS"
 
 tests:
-  # Baseline: default prj.conf, no PM symbols at all.
-  sample.pm.port.baseline: {}
+  # The control. No snippet, so lib/pm_test's layer choice falls back to baseline.
+  drivers.pm.port.baseline: {}
 
-  sample.pm.port.device:
-    extra_args:
-      - EXTRA_CONF_FILE=overlay-pm-device.conf
+  drivers.pm.port.device:
+    required_snippets:
+      - pm-device
 
-  sample.pm.port.runtime:
-    extra_args:
-      - EXTRA_CONF_FILE=overlay-pm-runtime.conf
+  drivers.pm.port.runtime:
+    required_snippets:
+      - pm-runtime
 
-  sample.pm.port.system:
+  # Which state the pin-mux does not survive is a property of this peripheral, so
+  # the state list is the one thing a layer snippet cannot supply.
+  drivers.pm.port.system:
+    required_snippets:
+      - pm-system
     extra_args:
-      - EXTRA_CONF_FILE=overlay-pm-system.conf
       - EXTRA_DTC_OVERLAY_FILE=constraints.overlay
 
-  sample.pm.port.sysmanaged:
-    extra_args:
-      - EXTRA_CONF_FILE=overlay-pm-sysmanaged.conf
+  drivers.pm.port.sysmanaged:
+    required_snippets:
+      - pm-sysmanaged
 
-  # Deep Power Down closes the pin-mux clock gates, so the sweep's SUSPEND/RESUME
-  # is not enough and the core domain has to hand the driver a TURN_OFF/TURN_ON
-  # pair around the transition. The state is opt-in per family: only SRAMA
-  # survives DPD on MCXN, so the two families need different devicetree overlays
-  # and therefore separate scenarios.
-  sample.pm.port.dpd.mcxn:
-    extra_args:
-      - EXTRA_CONF_FILE=overlay-pm-sysmanaged.conf
-      - EXTRA_DTC_OVERLAY_FILE=dpd-mcxn.overlay
-    platform_exclude:
-      - frdm_mcxa153
-      - frdm_mcxa156
-      - frdm_mcxa266
-      - frdm_mcxa344
-      - frdm_mcxa346
-      - frdm_mcxa366
-      - frdm_mcxa577
-
-  sample.pm.port.dpd.mcxa:
-    extra_args:
-      - EXTRA_CONF_FILE=overlay-pm-sysmanaged.conf
-      - EXTRA_DTC_OVERLAY_FILE=dpd-mcxa.overlay
-    platform_exclude:
-      - frdm_mcxn947/mcxn947/cpu0
-      - frdm_mcxn947/mcxn947/cpu0/qspi
-      - frdm_mcxn236
-      - mcx_n9xx_evk/mcxn947/cpu0
-      - mcx_n9xx_evk/mcxn947/cpu0/qspi
-      - mcx_n5xx_evk/mcxn547/cpu0
+  # One scenario for both SoC families: the snippet applies the MCXN retained-SRAM
+  # constraint from the board target itself.
+  drivers.pm.port.dpd:
+    required_snippets:
+      - pm-dpd

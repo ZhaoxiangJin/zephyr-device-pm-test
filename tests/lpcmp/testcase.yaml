@@ -1,25 +1,19 @@
 # Copyright 2026 NXP
 # SPDX-License-Identifier: Apache-2.0
 #
-# NOTE: the 'runtime' and 'system' cases are expected to FAIL against the current
-# driver -- nxp_lpcmp_init() enables CCR0.CMP_EN before pm_device_driver_init(), so the
-# comparator boots powered up while PM reports SUSPENDED. The 'device' case is expected
-# to fail one check too (set_trigger_callback re-enables a suspended comparator). Both
-# are real driver defects; see README.md. Keeping the PASS regex uniform means a driver
-# fix shows up as these cases turning green.
+# One scenario per layer, and the layer is named once, as a snippet. Per-board
+# comparator wiring lives in boards/<board_target>.overlay and is picked up
+# automatically.
 #
-# Per-board comparator wiring lives in boards/<board_target>.overlay and is picked up
-# automatically, so the system case stacks constraints.overlay with
-# EXTRA_DTC_OVERLAY_FILE rather than replacing DTC_OVERLAY_FILE.
-#
-# The GPIO loopback layer is not listed here: it needs a jumper between two headers on
-# each board, so it is a manual run (see README.md).
+# The optional GPIO loopback layer is not a scenario: it needs a jumper between two
+# headers, so it is stacked onto one of these by hand. See README.md.
 
 common:
   tags:
     - pm
     - comparator
     - drivers
+  harness: ztest
   platform_allow:
     # MCXN
     - frdm_mcxn947/mcxn947/cpu0
@@ -36,26 +30,24 @@ common:
     - frdm_mcxa346
     - frdm_mcxa366
     - frdm_mcxa577
-  harness: console
-  harness_config:
-    type: multi_line
-    ordered: false
-    regex:
-      - "PM-TEST: RESULT PASS"
 
 tests:
-  # Baseline: default prj.conf, no PM symbols at all.
-  sample.pm.lpcmp.baseline: {}
+  # The control. No snippet, so lib/pm_test's layer choice falls back to baseline.
+  drivers.pm.lpcmp.baseline: {}
 
-  sample.pm.lpcmp.device:
-    extra_args:
-      - EXTRA_CONF_FILE=overlay-pm-device.conf
+  drivers.pm.lpcmp.device:
+    required_snippets:
+      - pm-device
 
-  sample.pm.lpcmp.runtime:
-    extra_args:
-      - EXTRA_CONF_FILE=overlay-pm-runtime.conf
+  drivers.pm.lpcmp.runtime:
+    required_snippets:
+      - pm-runtime
 
-  sample.pm.lpcmp.system:
+  # Which states cut the comparator's analog bias is a property of this peripheral,
+  # so the state list is the one thing a layer snippet cannot supply. Stacked with
+  # EXTRA_DTC_OVERLAY_FILE so boards/<board_target>.overlay still applies.
+  drivers.pm.lpcmp.system:
+    required_snippets:
+      - pm-system
     extra_args:
-      - EXTRA_CONF_FILE=overlay-pm-system.conf
       - EXTRA_DTC_OVERLAY_FILE=constraints.overlay
