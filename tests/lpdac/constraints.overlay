@@ -1,0 +1,23 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * System-PM constraint layer: mark which SoC power states stop the DAC output.
+ * Stacked on top of the per-board overlay in boards/ for the system layer (via
+ * EXTRA_DTC_OVERLAY_FILE, so the board overlay is still picked up automatically).
+ *
+ * The analog output survives none of the three: per MCX Nx4x RM Rev. 6_RC2 Table
+ * 336, and the equivalent table in every MCXA RM, the DAC analog block is off in
+ * Deep Sleep, Power Down and Deep Power Down unless an SPC low-power request asks
+ * for it. Deep Power Down also gates the CORE domain and resets the registers,
+ * which is the stronger loss the dpd layer is about.
+ *
+ * Every MCXN and MCXA SoC dtsi now carries this exact list on its DAC nodes, so
+ * here it only restates what the SoC already declares. It is kept because the
+ * layer is about the constraint mechanism, not about who declared it: the layer
+ * still has to pass on a board whose SoC dtsi predates that list.
+ */
+
+&dac0 {
+	zephyr,disabling-power-states = <&deepsleep &powerdown &deeppowerdown>;
+};

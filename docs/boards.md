@@ -11,6 +11,9 @@ Which case covers which target is declared in that case's `testcase.yaml` (`plat
 that declaration is authoritative — this table is the human summary of it.
 
 - **lpadc, lpcmp, port** cover every target above.
+- **lpdac** covers 10 targets: every MCXN one except `frdm_mcxn236`, and every MCXA one except
+  `frdm_mcxa153` and `frdm_mcxa344`. Those three SoCs have no `nxp,lpdac` node at all. (`dac2` on
+  MCXN947 is an `nxp,hpdac` and a different driver.)
 - **vref** covers the MCXN targets only: no MCXA SoC has an `nxp,vref` node.
 
 Every one of these SoCs `select HAS_PM` and declares the same four power states (`sleep`,

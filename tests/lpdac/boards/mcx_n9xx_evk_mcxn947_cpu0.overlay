@@ -1,0 +1,19 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * DAC wiring for the device-PM test on MCX-N9XX-EVK (cpu0).
+ *
+ * DAC0 channel 0, 12-bit, output on J1-4. Nothing has to be connected: this test
+ * reads GCR, not the output voltage.
+ *
+ * The board dts already sets &dac0 to "okay" and applies pinmux_dac0.
+ */
+
+/ {
+	zephyr,user {
+		dac = <&dac0>;
+		dac-channel-id = <0>;
+		dac-resolution = <12>;
+	};
+};

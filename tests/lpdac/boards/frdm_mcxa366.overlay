@@ -1,0 +1,37 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * DAC wiring for the device-PM test on FRDM-MCXA366.
+ *
+ * DAC0 channel 0, 12-bit, output on J1-4 (P2_2). Nothing has to be connected: this
+ * test reads GCR, not the output voltage.
+ *
+ * DAC0_OUT_P2_2 and LPUART2_TXD_P2_2 are the same pin, and lpuart2 is the board's
+ * console, so the console moves to lpuart3 -- the same move
+ * samples/drivers/dac makes on this board. Without it, applying pinmux_dac0 takes
+ * the console away and the run has nowhere to report.
+ *
+ * The board dts already sets &dac0 to "okay" and applies pinmux_dac0.
+ */
+
+/ {
+	chosen {
+		zephyr,console = &lpuart3;
+		zephyr,shell-uart = &lpuart3;
+	};
+
+	zephyr,user {
+		dac = <&dac0>;
+		dac-channel-id = <0>;
+		dac-resolution = <12>;
+	};
+};
+
+&lpuart2 {
+	status = "disabled";
+};
+
+&lpuart3 {
+	status = "okay";
+};

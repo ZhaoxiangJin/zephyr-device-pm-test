@@ -1,0 +1,60 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+#
+# One scenario per layer, and the layer is named once, as a snippet. Per-board DAC
+# wiring lives in boards/<board_target>.overlay and is picked up automatically.
+#
+# platform_allow is every board target whose devicetree enables an nxp,lpdac node.
+# frdm_mcxn236, frdm_mcxa153 and frdm_mcxa344 are absent because those SoCs have no
+# DAC at all; frdm_mcxn947's dac2 is an nxp,hpdac and a different driver.
+
+common:
+  tags:
+    - pm
+    - dac
+    - drivers
+  harness: ztest
+  platform_allow:
+    # MCXN
+    - frdm_mcxn947/mcxn947/cpu0
+    - frdm_mcxn947/mcxn947/cpu0/qspi
+    - mcx_n9xx_evk/mcxn947/cpu0
+    - mcx_n9xx_evk/mcxn947/cpu0/qspi
+    - mcx_n5xx_evk/mcxn547/cpu0
+    # MCXA
+    - frdm_mcxa156
+    - frdm_mcxa266
+    - frdm_mcxa346
+    - frdm_mcxa366
+    - frdm_mcxa577
+
+tests:
+  # The control. No snippet, so lib/pm_test's layer choice falls back to baseline.
+  drivers.pm.lpdac.baseline: {}
+
+  drivers.pm.lpdac.device:
+    required_snippets:
+      - pm-device
+
+  drivers.pm.lpdac.runtime:
+    required_snippets:
+      - pm-runtime
+
+  # Which states stop the output is a property of this peripheral, so the state
+  # list is the one thing a layer snippet cannot supply. Stacked with
+  # EXTRA_DTC_OVERLAY_FILE so boards/<board_target>.overlay still applies.
+  drivers.pm.lpdac.system:
+    required_snippets:
+      - pm-system
+    extra_args:
+      - EXTRA_DTC_OVERLAY_FILE=constraints.overlay
+
+  drivers.pm.lpdac.sysmanaged:
+    required_snippets:
+      - pm-sysmanaged
+
+  # One scenario for both SoC families: the snippet applies the MCXN retained-SRAM
+  # constraint from the board target itself.
+  drivers.pm.lpdac.dpd:
+    required_snippets:
+      - pm-dpd
