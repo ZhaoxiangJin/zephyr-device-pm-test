@@ -47,14 +47,27 @@
  * @param dev  device to query
  * @param when short label for where in the sequence this is, e.g. "at boot"
  */
+#if defined(CONFIG_PM_DEVICE)
 #define pm_test_note_state(dev, when)                                                              \
 	do {                                                                                       \
-		enum pm_device_state _pm_st;                                                       \
+		enum pm_device_state _pm_st;                                                        \
                                                                                                    \
-		if (pm_device_state_get((dev), &_pm_st) == 0) {                                    \
-			TC_PRINT("%s %s: %s\n", (dev)->name, (when),                               \
-				 pm_device_state_str(_pm_st));                                     \
+		if (pm_device_state_get((dev), &_pm_st) == 0) {                                     \
+			TC_PRINT("%s %s: %s\n", (dev)->name, (when),                                \
+				 pm_device_state_str(_pm_st));                                      \
 		}                                                                                  \
 	} while (0)
+#else
+/*
+ * The baseline layer has no device PM at all, and pm_device_state_str() is
+ * compiled only with CONFIG_PM_DEVICE. A case that notes the boot state from its
+ * suite setup -- which every layer shares -- would otherwise fail to link there,
+ * so say what the build is instead of dropping the line.
+ */
+#define pm_test_note_state(dev, when)                                                              \
+	do {                                                                                       \
+		TC_PRINT("%s %s: no device PM in this build\n", (dev)->name, (when));               \
+	} while (0)
+#endif /* CONFIG_PM_DEVICE */
 
 #endif /* PM_TEST_STATE_H_ */
