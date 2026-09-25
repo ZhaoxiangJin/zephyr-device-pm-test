@@ -59,13 +59,15 @@ LPC55S3x parts have an `nxp,lpdac` but no SoC power states to test it against.
 | `baseline` | `channel_setup()` + `write_value()` succeed, the output buffer comes on, and `GCR` carries configuration — the control, compiled into every layer |
 | `device` | boots ACTIVE; `SUSPEND` clears `DACEN` and leaves the configuration alone; write and setup are then refused with `-EBUSY` without touching `DACEN`; `RESUME` restores both; a second `RESUME` is `-EALREADY`. A second test clobbers `GCR` by hand and requires `TURN_ON` to rebuild it — and to leave the output off, because putting it back is `RESUME`'s job |
 | `runtime` | boots with no consumer, so no output and `channel_setup()` is `-EBUSY`; a reference brings it up, a nested get/put keeps it up, the last put takes the output down, and the next get brings it back with the same configuration and no second `channel_setup()` |
-| `system` | the policy lock the application takes covers exactly the states the node declares in `zephyr,disabling-power-states`, nothing is locked before or after, and the output is usable while it is held |
+| `system` | the driver locks exactly the states the node declares in `zephyr,disabling-power-states`, and only while its output is on: nothing is locked before the write or after the last consumer reference is dropped, and a resume that restores the output restores the lock with it |
 | `sysmanaged` | configuration and output survive one forced Deep Sleep |
 | `dpd` | the same across Deep Power Down, where `TURN_ON` really does rebuild the block from reset |
 
-The application, not the driver, holds the policy lock and the runtime reference:
-the driver takes none of its own and refuses API calls outside ACTIVE, so "is an
-output wanted" stays the consumer's fact. `constraints.overlay` restates the
+The runtime reference is the application's: the driver takes none of its own and
+refuses API calls outside ACTIVE, so "is an output wanted" stays the consumer's
+fact. The policy lock is the driver's, and it is pinned to that same fact — taken
+when the output is turned on, dropped in `SUSPEND`, which under runtime PM is where
+the last reference goes away. `constraints.overlay` restates the
 `zephyr,disabling-power-states` list the SoC dtsi already gives `&dac0`, so the
 `system` layer does not depend on that half of the work.
 
