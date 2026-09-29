@@ -1,0 +1,22 @@
+{
+  "run": "20260929-ctimer-dapeng",
+  "date": "2026-09-29",
+  "case": "ctimer",
+  "where": "dapeng",
+  "zephyr": "1ee3b93134be",
+  "harness": "16c7be4",
+  "targets": {
+    "frdm_mcxn947/mcxn947/cpu0": {
+      "job": "2321809",
+      "station": "1166",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "blocked",
+        "sysmanaged": "pass",
+        "system": "pass"
+      }
+    }
+  }
+}
