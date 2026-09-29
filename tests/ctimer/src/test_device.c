@@ -1,0 +1,175 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/**
+ * @file
+ * @brief The device layer: the driver's PM callbacks, driven directly.
+ *
+ * Two tests, for the two halves of the callback. The first is the SUSPEND/RESUME
+ * round trip, which owns the clock gate. The second is TURN_OFF/TURN_ON, which owns
+ * the register block -- and since nothing in this layer really cut power to it, the
+ * block is clobbered by hand so that the restore has something to put back. What a
+ * real power cycle does is asked in src/test_lowpower.c under the dpd layer.
+ *
+ * Note which action is expected to bring the block up. This driver does nothing in
+ * TURN_ON and configures from RESUME, so that an instance which boots SUSPENDED
+ * under runtime PM boots with its clock genuinely gated instead of running behind a
+ * PM state that says otherwise. The second test asserts that split rather than
+ * assuming it.
+ */
+
+#include <zephyr/pm/device.h>
+#include <zephyr/ztest.h>
+
+#include <pm_test/state.h>
+
+#include "ctimer.h"
+
+ZTEST(ctimer_pm, test_device_suspend_resume)
+{
+	CTIMER_FOREACH_CASE(c) {
+		struct ctimer_image armed;
+		struct ctimer_image after;
+		int err;
+
+		if (!ctimer_gate_observable(c)) {
+			TC_PRINT("%s: clock gate not observable, nothing asserted\n",
+				 c->dev->name);
+			continue;
+		}
+
+		/* No runtime PM in this layer, so pm_device_driver_init() resumed it. */
+		zassert_pm_state(c->dev, PM_DEVICE_STATE_ACTIVE);
+		zassert_true(ctimer_gate_is_open(c), "%s: gate closed while PM reports ACTIVE",
+			     c->dev->name);
+
+		zassert_ok(ctimer_start_and_verify(c), "%s: counter did not start", c->dev->name);
+		zassert_ok(ctimer_arm_alarm(c, 50U), "%s: could not arm the alarm", c->dev->name);
+		ctimer_image_read(c, &armed);
+		ctimer_report_hw(c, "before-suspend");
+
+		zassert_ok(pm_device_action_run(c->dev, PM_DEVICE_ACTION_SUSPEND),
+			   "%s: SUSPEND action rejected", c->dev->name);
+		zassert_pm_state(c->dev, PM_DEVICE_STATE_SUSPENDED);
+		ctimer_report_hw(c, "after-suspend");
+
+		/*
+		 * The claim of this layer: the block is no longer clocked. Nothing is read
+		 * out of it here -- an unclocked block does not answer, and reading it to
+		 * find out whether it is clocked is the one thing that cannot be done.
+		 */
+		zassert_false(ctimer_gate_is_open(c), "%s: clock gate still open after SUSPEND",
+			      c->dev->name);
+		zassert_false(ctimer_alarm_fired(c),
+			      "%s: the alarm fired while the block was suspended", c->dev->name);
+
+		zassert_ok(pm_device_action_run(c->dev, PM_DEVICE_ACTION_RESUME),
+			   "%s: RESUME action rejected", c->dev->name);
+		zassert_pm_state(c->dev, PM_DEVICE_STATE_ACTIVE);
+		ctimer_image_read(c, &after);
+		ctimer_report_hw(c, "after-resume");
+
+		zassert_true(ctimer_gate_is_open(c), "%s: gate still closed after RESUME",
+			     c->dev->name);
+
+		/*
+		 * The alarm the consumer armed is still armed, and the counter it was
+		 * armed against is running again -- so it fires without the consumer
+		 * doing anything.
+		 */
+		zassert_true(ctimer_image_equal(&after, &armed),
+			     "%s: RESUME left TCR=0x%08x MCR=0x%08x MR=0x%08x, want "
+			     "0x%08x/0x%08x/0x%08x", c->dev->name, after.tcr, after.mcr,
+			     after.mr, armed.tcr, armed.mcr, armed.mr);
+		zassert_true(ctimer_advances(c), "%s: the counter is not running after RESUME",
+			     c->dev->name);
+		zassert_true(ctimer_alarm_wait(c, 500U),
+			     "%s: the alarm did not fire after RESUME", c->dev->name);
+
+		/* A redundant action must be refused, not obeyed and not fatal. */
+		err = pm_device_action_run(c->dev, PM_DEVICE_ACTION_RESUME);
+		zassert_equal(err, -EALREADY, "%s: second RESUME returned %d, want -EALREADY",
+			      c->dev->name, err);
+
+		(void)ctimer_cancel_alarm(c);
+		(void)ctimer_stop(c);
+	}
+}
+
+ZTEST(ctimer_pm, test_device_resume_rebuilds_the_register_block)
+{
+	CTIMER_FOREACH_CASE(c) {
+		struct ctimer_image armed;
+		struct ctimer_image clobbered;
+		struct ctimer_image after_resume;
+		bool gate_after_turn_on;
+		int suspend_rc;
+		int turn_off_rc;
+		int turn_on_rc;
+		int resume_rc;
+
+		if (!ctimer_gate_observable(c)) {
+			TC_PRINT("%s: clock gate not observable, nothing asserted\n",
+				 c->dev->name);
+			continue;
+		}
+
+		zassert_pm_state(c->dev, PM_DEVICE_STATE_ACTIVE);
+		zassert_ok(ctimer_start_and_verify(c), "%s: counter did not start", c->dev->name);
+		zassert_ok(ctimer_arm_alarm(c, 50U), "%s: could not arm the alarm", c->dev->name);
+		ctimer_image_read(c, &armed);
+
+		/*
+		 * Collected in one go and asserted afterwards, so that a failure cannot
+		 * hand the next test a device the core still records as OFF.
+		 */
+		suspend_rc = pm_device_action_run(c->dev, PM_DEVICE_ACTION_SUSPEND);
+
+		ctimer_clobber(c, &clobbered);
+
+		turn_off_rc = pm_device_action_run(c->dev, PM_DEVICE_ACTION_TURN_OFF);
+
+		turn_on_rc = pm_device_action_run(c->dev, PM_DEVICE_ACTION_TURN_ON);
+		gate_after_turn_on = ctimer_gate_is_open(c);
+
+		resume_rc = pm_device_action_run(c->dev, PM_DEVICE_ACTION_RESUME);
+		ctimer_image_read(c, &after_resume);
+		ctimer_report_hw(c, "after-resume");
+
+		zassert_ok(suspend_rc, "%s: SUSPEND rejected (%d)", c->dev->name, suspend_rc);
+		zassert_ok(turn_off_rc, "%s: TURN_OFF rejected (%d)", c->dev->name, turn_off_rc);
+		zassert_ok(turn_on_rc, "%s: TURN_ON rejected (%d)", c->dev->name, turn_on_rc);
+		zassert_ok(resume_rc, "%s: RESUME rejected (%d)", c->dev->name, resume_rc);
+		zassert_pm_state(c->dev, PM_DEVICE_STATE_ACTIVE);
+
+		/* Before anything else: a clobber that did not take would make the restore
+		 * assertion below pass without the driver having rebuilt a thing.
+		 */
+		zassert_false(ctimer_image_equal(&clobbered, &armed),
+			      "%s: the clobber did not take, so this test proves nothing",
+			      c->dev->name);
+
+		/*
+		 * TURN_ON returns with the core about to record the device as suspended,
+		 * so a block left clocked would be a block running behind a PM state that
+		 * says it is not. Bringing it back is RESUME's job, and it has to bring
+		 * back the run-time image and not just a devicetree configuration that is
+		 * indistinguishable from reset.
+		 */
+		zassert_false(gate_after_turn_on, "%s: TURN_ON opened the clock gate",
+			      c->dev->name);
+		zassert_true(ctimer_gate_is_open(c), "%s: RESUME left the clock gate closed",
+			     c->dev->name);
+		zassert_true(ctimer_image_equal(&after_resume, &armed),
+			     "%s: RESUME left TCR=0x%08x MCR=0x%08x MR=0x%08x, want "
+			     "0x%08x/0x%08x/0x%08x", c->dev->name, after_resume.tcr,
+			     after_resume.mcr, after_resume.mr, armed.tcr, armed.mcr, armed.mr);
+		zassert_true(ctimer_alarm_wait(c, 500U),
+			     "%s: the restored alarm did not fire", c->dev->name);
+
+		(void)ctimer_cancel_alarm(c);
+		(void)ctimer_stop(c);
+	}
+}
