@@ -20,7 +20,9 @@ python scripts/collect_results.py --twister-out /c/tw --where dapeng \
 
 The verdict per layer comes from twister's own `twister.json`, not from a human reading a console
 log. Targets that never reached a board are passed in with `--blocked <target>` and recorded as
-such.
+such. A single layer that did reach the board but could not return a verdict there, for a reason
+outside the driver under test, is `--blocked-layer <layer>`: it was run, so `built` would
+understate it, and `fail` would blame the driver for someone else's defect.
 
 ### A run on the farm
 
@@ -84,7 +86,7 @@ a regression is a diff.
 | `pass` | it ran on the board and passed |
 | `fail` | it did not pass — it either ran and failed, or did not build. **The one that must never be quietly dropped**: it means a real defect, and that defect gets a row in [findings.md](findings.md) |
 | `skipped` | it ran and the case decided the layer is not observable on this SoC, e.g. a peripheral the reference manual says keeps running through the state under test. A statement about silicon, not an absence of one |
-| `blocked` | never reached the board — no station, bridge would not come up, or a known environment defect such as `mcxa-suspend-to-idle-never-wakes`. Says nothing about the driver |
+| `blocked` | never reached the board — no station, bridge would not come up — or reached it and was stopped there by a defect outside the driver under test, such as `mcxa-suspend-to-idle-never-wakes` or `pd-soc-state-change-null-deref`. Says nothing about the driver |
 | `built` | the image compiles; it was not run. The weakest useful evidence |
 
 Ranking when several runs cover the same layer: `pass`/`fail`/`skipped` all beat `built`, which beats

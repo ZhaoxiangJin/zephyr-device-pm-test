@@ -1,0 +1,64 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+#
+# One scenario per layer, and the layer is named once, as a snippet.
+#
+# There is no boards/ directory: a counter needs no external wiring, and every board
+# target below enables ctimer0 in its own devicetree and attaches a clock to it from
+# its board init. The case covers whatever nxp,lpc-ctimer instances the board target
+# happens to enable, so a board that enables more than one is covered without a
+# per-board file.
+
+common:
+  tags:
+    - pm
+    - counter
+    - drivers
+  harness: ztest
+  platform_allow:
+    # MCXN
+    - frdm_mcxn947/mcxn947/cpu0
+    - frdm_mcxn947/mcxn947/cpu0/qspi
+    - frdm_mcxn236
+    - mcx_n9xx_evk/mcxn947/cpu0
+    - mcx_n9xx_evk/mcxn947/cpu0/qspi
+    - mcx_n5xx_evk/mcxn547/cpu0
+    # MCXA
+    - frdm_mcxa153
+    - frdm_mcxa156
+    - frdm_mcxa266
+    - frdm_mcxa344
+    - frdm_mcxa346
+    - frdm_mcxa366
+    - frdm_mcxa577
+
+tests:
+  # The control. No snippet, so lib/pm_test's layer choice falls back to baseline.
+  drivers.pm.ctimer.baseline: {}
+
+  drivers.pm.ctimer.device:
+    required_snippets:
+      - pm-device
+
+  drivers.pm.ctimer.runtime:
+    required_snippets:
+      - pm-runtime
+
+  # Which states stop this CTIMER counting depends on which clock the board attached
+  # to it, so the state list is the one thing a layer snippet cannot supply. Stacked
+  # with EXTRA_DTC_OVERLAY_FILE so anything the board target applies still applies.
+  drivers.pm.ctimer.system:
+    required_snippets:
+      - pm-system
+    extra_args:
+      - EXTRA_DTC_OVERLAY_FILE=constraints.overlay
+
+  drivers.pm.ctimer.sysmanaged:
+    required_snippets:
+      - pm-sysmanaged
+
+  # One scenario for both SoC families: the snippet applies the MCXN retained-SRAM
+  # constraint from the board target itself.
+  drivers.pm.ctimer.dpd:
+    required_snippets:
+      - pm-dpd
