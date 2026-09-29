@@ -170,6 +170,11 @@ def main() -> int:
                     help="run provenance only; never analysis")
     ap.add_argument("--blocked", action="append", default=[], metavar="TARGET",
                     help="target that never reached a board; every layer is recorded blocked")
+    ap.add_argument("--blocked-layer", action="append", default=[], metavar="LAYER",
+                    help="one layer that reached a board but could not produce a verdict "
+                         "there, for a reason outside the driver under test; recorded "
+                         "blocked rather than built, because it was run. Say why in "
+                         "docs/findings.md")
     ap.add_argument("--console", action="append", default=[], metavar="LAYER=FILE",
                     help="ztest capture from a board, for layers this twister run "
                          "only built; the board's verdict replaces \"built\"")
@@ -233,6 +238,13 @@ def main() -> int:
         for target, found in sorted(cases[case].items()):
             if target in args.blocked:
                 found = {layer: "blocked" for layer in found}
+            else:
+                unknown_layers = set(args.blocked_layer) - set(found)
+                if unknown_layers:
+                    return (f"--blocked-layer names {', '.join(sorted(unknown_layers))}, "
+                            f"which this run did not build for {target}")
+                found = {layer: ("blocked" if layer in args.blocked_layer else verdict)
+                         for layer, verdict in found.items()}
             entry = {}
             for key, table in (("job", jobs), ("station", stations), ("note", notes)):
                 if target in table:
