@@ -18,7 +18,7 @@ so does the commit message that fixes one.
 | `lpcmp-set-trigger-callback-reenables` | lpcmp | `set_trigger_callback()` unconditionally sets `CMP_EN`, re-enabling a suspended comparator behind PM's back | `drivers/comparator/comparator_nxp_lpcmp.c` | open |
 | `lpcmp-pinctrl-never-applied` | lpcmp | the driver never calls `pinctrl_apply_state()` although its binding includes `pinctrl-device.yaml`, so `pinctrl-0` has no effect (not a PM defect; it is why no layer asserts on the output *value* without the loopback option) | `drivers/comparator/comparator_nxp_lpcmp.c` | open |
 | `port5-clock-gate-never-reopened` | port | `clock_control_mcux_syscon.c` handles `MCUX_PORT0_CLK`…`MCUX_PORT4_CLK` and stops, in both family branches, so `clock_control_on()` silently does nothing for a `portf` that has a real gate and `TURN_ON` never re-opens it | `drivers/clock_control/clock_control_mcux_syscon.c` | open |
-| `vref-output-not-reenabled-after-dpd` | vref | `TURN_ON` restores neither `regulator-initial-mode` nor the output enable, so after Deep Power Down a consumer still holding an enabled reference reads a dead bandgap and gets no error | `drivers/regulator/regulator_nxp_vref.c` | open |
+| `vref-output-not-reenabled-after-dpd` | vref | A consumer's held output and selected mode were not restored after register loss | `drivers/regulator/regulator_nxp_vref.c` | corrected in `enable-vref-device-pm`; hardware DPD verification pending |
 | `ctimer-pm-actions-were-empty` | ctimer | the driver registered a `pm_device` whose `SUSPEND`, `RESUME` and `TURN_OFF` actions were all an empty `break;`, so every transition was reported to the core and none of them reached the hardware; the clock ran and an armed alarm stayed armed through a suspend | `drivers/counter/counter_mcux_ctimer.c` | fixed, verified on hardware |
 | `ctimer-clock-gate-missing-from-syscon` | ctimer | `clock_control_mcux_syscon.c` carried no `MCUX_CTIMERn_CLK` case in either `on()` or `off()`, so a driver asking for its CTIMER clock to be gated was answered 0 and nothing happened — the same shape as `port5-clock-gate-never-reopened`, but for every instance on every family | `drivers/clock_control/clock_control_mcux_syscon.c` | fixed, verified on hardware |
 | `ctimer-power-lock-held-while-suspended` | ctimer | the `pm_policy` device power lock was taken from `start()` and released only from `stop()`, so a counter the consumer left running kept blocking the states it declares for as long as the device was suspended — the system is held out of a state for a block that is not counting and has nothing to lose there | `drivers/counter/counter_mcux_ctimer.c` | fixed, verified on hardware |
@@ -58,10 +58,14 @@ build those drivers with device PM but without system PM — which is exactly th
 `mcxa-suspend-to-idle-never-wakes` is an environment defect. It blocks two layers on a whole family
 and says nothing about the peripheral, which is why the record distinguishes `blocked` from `fail`.
 
-## Whose job is `vref-output-not-reenabled-after-dpd`
+## VREF replay and runtime contract
 
-Genuinely arguable, and [../tests/vref/README.md](../tests/vref/README.md) argues both sides. The
-harness does not take a position; it reports that the current behaviour is *silent*, and
-demonstrates in the same layer that the block itself recovers on a disable/enable cycle. The mode
-half is the weaker one: `regulator_set_mode()` stores nothing in `data`, so a driver could restore
-only the devicetree's initial mode, never a consumer's later choice.
+The [VREF case](../tests/vref/README.md) requires the driver to restore a held output and the
+consumer's last accepted mode, without changing the common regulator reference count.
+An unused output must remain off. The driver holds a runtime reference between its enable
+and disable operations; configuration accesses use temporary references.
+
+The shared-domain findings above describe the historical failing revisions. At Zephyr
+`a915b2f12675`, `power_domain_soc_state_change.c` already checks for a NULL next state and
+forwards `TURN_ON` on runtime resume. Those fixes are prerequisites of the current VREF
+runtime case, not new changes made by the VREF series. The old run records remain unchanged.

@@ -1,0 +1,17 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <zephyr/dt-bindings/regulator/nxp_vref.h>
+
+/ {
+	aliases {
+		test-vref = &vref;
+	};
+};
+
+&vref {
+	status = "okay";
+	regulator-initial-mode = <NXP_VREF_MODE_HIGH_POWER>;
+};
