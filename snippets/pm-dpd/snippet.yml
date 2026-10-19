@@ -6,7 +6,7 @@ description: |
   Deep Power Down layer: the power domain's TURN_OFF/TURN_ON restoring a register
   block that came back from reset. See docs/pm-layers.md.
 
-  The MCXN retained-SRAM constraint is applied from the board target here, which
+  The retained-SRAM constraint is applied from the board target here, which
   is what lets every case have one dpd scenario instead of one per SoC family.
 append:
   EXTRA_CONF_FILE: pm-dpd.conf
@@ -19,3 +19,7 @@ boards:
   /.*mcxn.*/:
     append:
       EXTRA_DTC_OVERLAY_FILE: mcxn-retained-sram.overlay
+
+  /frdm_mcxa577\/.*/:
+    append:
+      EXTRA_DTC_OVERLAY_FILE: mcxa577-retained-sram.overlay
