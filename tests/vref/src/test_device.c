@@ -3,21 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * @file
- * @brief The device layer: regulator_nxp_vref_pm_action() driven directly.
- *
- * Two claims, in two tests, and they have to run in this order: the first is about
- * the restore path the driver takes when no consumer has asked for a voltage, and
- * once the second has called regulator_set_voltage() the driver has latched
- * trim_set and that path cannot be reached again in the same run.
- *
- * Both tests stand in for a reset by clobbering registers by hand, because in this
- * layer nothing cut power to the block -- so SUSPEND and TURN_OFF are expected to
- * be no-ops, and only TURN_ON has work to do. What TURN_ON does *not* restore is
- * asked in src/test_lowpower.c, the layer where the block really did lose power.
- */
-
+#include <errno.h>
+#include <zephyr/dt-bindings/regulator/nxp_vref.h>
 #include <zephyr/pm/device.h>
 #include <zephyr/ztest.h>
 
@@ -25,129 +12,88 @@
 
 #include "vref.h"
 
-/* Observations from one clobber/SUSPEND/TURN_OFF/TURN_ON/RESUME cycle. Collected
- * first and asserted afterwards, so that a failure cannot hand the next test a
- * suspended device and be reported twice.
- */
-struct cycle {
-	int suspend_rc;
-	int turn_off_rc;
-	int turn_on_rc;
-	int resume_rc;
-	bool bits_clobbered;
-	bool bits_after_suspend;
-	bool bits_after_turn_off;
-	bool bits_after_turn_on;
-	uint32_t trim_after_turn_on;
-	int32_t volt_after_turn_on;
-	int volt_rc;
-};
-
-static void run_cycle(struct cycle *c)
+static void cycle(bool enabled, regulator_mode_t mode)
 {
-	c->suspend_rc = pm_device_action_run(VREF_DEV, PM_DEVICE_ACTION_SUSPEND);
-	c->bits_after_suspend = vref_config_bits_present();
+	int32_t voltage;
+	int32_t restored;
+	uint32_t clobber;
+	uint32_t expected_trim;
 
-	c->turn_off_rc = pm_device_action_run(VREF_DEV, PM_DEVICE_ACTION_TURN_OFF);
-	c->bits_after_turn_off = vref_config_bits_present();
-
-	c->turn_on_rc = pm_device_action_run(VREF_DEV, PM_DEVICE_ACTION_TURN_ON);
-	c->bits_after_turn_on = vref_config_bits_present();
-	c->trim_after_turn_on = vref_trim();
-	c->volt_rc = regulator_get_voltage(VREF_DEV, &c->volt_after_turn_on);
-	vref_report_hw("after-turn-on");
-
-	c->resume_rc = pm_device_action_run(VREF_DEV, PM_DEVICE_ACTION_RESUME);
-}
-
-static void assert_cycle(const struct cycle *c)
-{
-	zassert_ok(c->suspend_rc, "SUSPEND rejected (%d)", c->suspend_rc);
-	zassert_ok(c->turn_off_rc, "TURN_OFF rejected (%d)", c->turn_off_rc);
-	zassert_ok(c->turn_on_rc, "TURN_ON rejected (%d)", c->turn_on_rc);
-	zassert_ok(c->resume_rc, "RESUME rejected (%d)", c->resume_rc);
-	zassert_pm_state(VREF_DEV, PM_DEVICE_STATE_ACTIVE);
-
-	/* Whether the output is on is owned by the consumers through the reference
-	 * count, not by the SoC power state, so neither of these may touch the block.
-	 */
-	zassert_false(c->bits_after_suspend, "SUSPEND reconfigured the block");
-	zassert_false(c->bits_after_turn_off, "TURN_OFF reconfigured the block");
-
-	zassert_true(c->bits_after_turn_on, "TURN_ON did not restore the devicetree "
-					    "configuration bits (CSR 0x%08x)", vref_csr());
-}
-
-ZTEST(vref_pm, test_device_turn_on_restores_an_untrimmed_block)
-{
-	uint32_t clobber_code;
-	struct cycle c;
-
-	/* No runtime PM in this layer, so pm_device_driver_init() ran TURN_ON and
-	 * RESUME and the block is configured.
-	 */
-	zassert_pm_state(VREF_DEV, PM_DEVICE_STATE_ACTIVE);
-	zassert_true(vref_config_bits_present(), "block is not configured at boot (CSR 0x%08x)",
-		     vref_csr());
-
-	vref_config_bits_clobber();
-	clobber_code = vref_trim_clobber();
-	c.bits_clobbered = !vref_config_bits_present() && (vref_trim() == clobber_code);
-	vref_report_hw("clobbered");
-
-	run_cycle(&c);
-
-	/* Before anything else: a clobber that did not take would make every
-	 * assertion below pass without the driver having restored a thing.
-	 */
-	zassert_true(c.bits_clobbered, "the clobber did not take, so this test proves nothing");
-	assert_cycle(&c);
-
-	if (vref_trim_is_factory) {
-		/* The factory trim is loaded at reset and the driver has no copy of
-		 * it, so leaving it alone is the right answer. This run has overwritten
-		 * it for good; nothing here depends on absolute accuracy.
-		 */
-		zassert_equal(c.trim_after_turn_on, clobber_code,
-			      "TURN_ON wrote the factory trim register");
-	} else {
-		zassert_equal(c.trim_after_turn_on, 0U,
-			      "TURN_ON left the untrimmed output at 0x%x instead of the bottom "
-			      "of the range", c.trim_after_turn_on);
+	zassert_ok(vref_pick_voltage(&voltage));
+	zassert_ok(regulator_set_voltage(VREF_DEV, voltage, voltage));
+	expected_trim = vref_trim();
+	zassert_ok(regulator_set_mode(VREF_DEV, mode));
+	if (enabled) {
+		zassert_ok(regulator_enable(VREF_DEV));
+		zassert_ok(regulator_enable(VREF_DEV));
 	}
+
+	for (int i = 0; i < 2; i++) {
+		zassert_ok(pm_device_action_run(VREF_DEV, PM_DEVICE_ACTION_SUSPEND));
+		zassert_pm_state(VREF_DEV, PM_DEVICE_STATE_SUSPENDED);
+		zassert_true(vref_output_disabled(), "SUSPEND left output circuitry enabled");
+		zassert_ok(pm_device_action_run(VREF_DEV, PM_DEVICE_ACTION_TURN_OFF));
+
+		vref_config_bits_clobber();
+		clobber = vref_trim_clobber();
+		zassert_false(vref_config_bits_present(), "configuration corruption did not take");
+		zassert_equal(vref_trim(), clobber);
+		zassert_not_equal(clobber, expected_trim,
+				  "trim corruption left the selected value");
+
+		zassert_ok(pm_device_action_run(VREF_DEV, PM_DEVICE_ACTION_TURN_ON));
+		zassert_pm_state(VREF_DEV, PM_DEVICE_STATE_SUSPENDED);
+		zassert_true(vref_config_bits_present(), "TURN_ON did not rebuild configuration");
+		zassert_true(vref_output_disabled(), "TURN_ON started an output");
+		zassert_ok(pm_device_action_run(VREF_DEV, PM_DEVICE_ACTION_RESUME));
+		zassert_pm_state(VREF_DEV, PM_DEVICE_STATE_ACTIVE);
+		zassert_ok(regulator_get_voltage(VREF_DEV, &restored));
+		zassert_equal(restored, voltage);
+		zassert_equal(regulator_is_enabled(VREF_DEV), enabled);
+		if (enabled) {
+			zassert_true(vref_output_stable(), "held output not restored");
+			zassert_equal(vref_hw_mode(), mode, "consumer mode not restored");
+		} else {
+			zassert_true(vref_output_disabled(), "unused output was enabled");
+		}
+		vref_report_hw("replayed");
+	}
+
+	if (enabled) {
+		zassert_ok(regulator_disable(VREF_DEV));
+		zassert_true(vref_output_stable(),
+			     "first disable dropped another consumer's output");
+		zassert_ok(regulator_disable(VREF_DEV));
+	}
+	zassert_true(vref_output_disabled());
 }
 
-ZTEST(vref_pm, test_device_turn_on_restores_a_consumer_trim)
+ZTEST(vref_pm, test_device_held_output_replay)
 {
-	int32_t chosen_uv = 0;
-	int32_t read_uv = 0;
-	uint32_t clobber_code;
-	struct cycle c;
-	int rc;
+	cycle(true, NXP_VREF_MODE_LOW_POWER);
+	cycle(true, NXP_VREF_MODE_HIGH_POWER);
+	cycle(true, NXP_VREF_MODE_STANDBY);
+}
 
-	zassert_ok(vref_pick_voltage(&chosen_uv), "no voltage can be picked out of the trim range");
-	rc = regulator_set_voltage(VREF_DEV, chosen_uv, chosen_uv);
-	zassert_ok(rc, "regulator_set_voltage(%d) failed (%d)", chosen_uv, rc);
-	zassert_ok(regulator_get_voltage(VREF_DEV, &read_uv), "regulator_get_voltage() failed");
-	zassert_equal(read_uv, chosen_uv, "voltage read back as %d, want %d", read_uv, chosen_uv);
+ZTEST(vref_pm, test_device_disabled_output_replay)
+{
+	cycle(false, NXP_VREF_MODE_HIGH_POWER);
+}
 
-	vref_config_bits_clobber();
-	clobber_code = vref_trim_clobber();
-	c.bits_clobbered = !vref_config_bits_present() && (vref_trim() == clobber_code);
-	vref_report_hw("clobbered");
+ZTEST(vref_pm, test_device_suspended_access)
+{
+	int32_t voltage;
+	regulator_mode_t mode;
 
-	run_cycle(&c);
-
-	zassert_true(c.bits_clobbered, "the clobber did not take, so this test proves nothing");
-	assert_cycle(&c);
-
-	/*
-	 * The claim the whole case exists for: that trim is the consumer's choice of
-	 * output, and after a reset of the block nothing but the driver's own copy of
-	 * it can put it back.
-	 */
-	zassert_ok(c.volt_rc, "regulator_get_voltage() failed after TURN_ON (%d)", c.volt_rc);
-	zassert_equal(c.volt_after_turn_on, chosen_uv,
-		      "TURN_ON restored %d uV, but the consumer asked for %d uV",
-		      c.volt_after_turn_on, chosen_uv);
+	zassert_ok(vref_pick_voltage(&voltage));
+	zassert_ok(pm_device_action_run(VREF_DEV, PM_DEVICE_ACTION_SUSPEND));
+	zassert_equal(regulator_set_mode(VREF_DEV, UINT8_MAX), -EINVAL);
+	zassert_equal(regulator_set_voltage(VREF_DEV, 0, 0), -EINVAL);
+	zassert_equal(regulator_enable(VREF_DEV), -EBUSY);
+	zassert_equal(regulator_set_mode(VREF_DEV, NXP_VREF_MODE_LOW_POWER), -EBUSY);
+	zassert_equal(regulator_set_voltage(VREF_DEV, voltage, voltage), -EBUSY);
+	zassert_equal(regulator_get_voltage(VREF_DEV, &voltage), -EBUSY);
+	zassert_equal(regulator_get_mode(VREF_DEV, &mode), -EBUSY);
+	zassert_true(vref_output_disabled());
+	zassert_ok(pm_device_action_run(VREF_DEV, PM_DEVICE_ACTION_RESUME));
 }
