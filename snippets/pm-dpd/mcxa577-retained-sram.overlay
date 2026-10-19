@@ -1,0 +1,11 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/* Only A0 and A3 are DPD-retainable on MCXAxx7. Use A3 and leave the
+ * boot ROM scratch area in A0 untouched.
+ */
+&sram0 {
+	reg = <0x20004000 0x4000>;
+};

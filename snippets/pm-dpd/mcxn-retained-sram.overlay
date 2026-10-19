@@ -2,16 +2,8 @@
  * Copyright 2026 NXP
  * SPDX-License-Identifier: Apache-2.0
  *
- * MCXN only. Deep Power Down retains just SRAMA, kept alive by the VBAT RAM LDO,
- * so the whole retained working set has to live there. Constrain zephyr,sram to
- * RAMA1-RAMA3 -- 24 KB at 0x20002000 -- which stays clear of the boot ROM scratch
- * at the bottom of SRAMA. This is the same window samples/boards/nxp/mcxn_a/s2ram
- * uses.
- *
- * A build that outgrows this window fails at link time; check it with
- * `west build -t ram_report`.
- *
- * MCXA needs no counterpart: the SPC SRAM retention LDO holds all of its SRAM.
+ * MCXN DPD retains SRAMA through the VBAT RAM LDO. Use RAMA1-RAMA3
+ * (24 KiB) and leave the boot ROM scratch area in RAMA0 untouched.
  */
 
 &sram0 {
