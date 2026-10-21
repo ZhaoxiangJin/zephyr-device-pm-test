@@ -19,6 +19,7 @@ transition behaves. A failing layer is a finding, not a broken harness.
 | [tests/port](tests/port) | PORT pin-mux | `drivers/pinctrl/pinctrl_nxp_port.c` |
 | [tests/sctimer](tests/sctimer) | SCTimer | `drivers/pwm/pwm_mcux_sctimer.c` |
 | [tests/vref](tests/vref) | VREF | `drivers/regulator/regulator_nxp_vref.c` |
+| [tests/wwdt](tests/wwdt) | WWDT | `drivers/watchdog/wdt_mcux_wwdt.c` |
 
 What it has found so far: [docs/findings.md](docs/findings.md).
 
@@ -80,10 +81,11 @@ west flash
 west twister -T zephyr-device-pm-test/tests -O /c/tw --all --ninja --short-build-path
 ```
 
-`-S <snippet>` selects the layer and is the whole interface; omit it for `baseline`. The one exception
-is `system`, whose state list is per peripheral and so comes from the case's own overlay
-(`-- -DEXTRA_DTC_OVERLAY_FILE=constraints.overlay`); twister does this for you. The layers, and what
-each one proves, are in [docs/pm-layers.md](docs/pm-layers.md). On Windows both a short `-O` and
+`-S <snippet>` selects the layer; omit it for `baseline`. The `system` layer's state list is
+per peripheral and comes from driver DTS constraints or the case's own overlay. If the case
+provides `constraints.overlay`, add `-- -DEXTRA_DTC_OVERLAY_FILE=constraints.overlay` for a
+manual build; Twister configures this per case. The layers, and what each one proves, are in
+[docs/pm-layers.md](docs/pm-layers.md). On Windows both a short `-O` and
 `--short-build-path` are required — [docs/boards.md](docs/boards.md#windows-outdir) says why.
 
 Tests are ztest suites, so twister reports per check rather than per image, and "not observable on
