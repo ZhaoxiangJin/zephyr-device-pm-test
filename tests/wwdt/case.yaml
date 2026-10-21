@@ -1,0 +1,12 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+#
+# What this case covers, for the Device PM report. See docs/authoring-a-case.md.
+
+case: wwdt
+ip: WWDT
+compatibles:
+  - nxp,lpc-wwdt
+drivers:
+  - drivers/watchdog/wdt_mcux_wwdt.c
+  - drivers/clock_control/clock_control_mcux_syscon.c
