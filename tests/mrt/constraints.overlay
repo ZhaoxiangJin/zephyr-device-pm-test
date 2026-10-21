@@ -1,0 +1,33 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * System-PM constraint layer: the two channels this case drives, plus the SoC power
+ * states that stop them counting.
+ *
+ * The channel enables repeat channels.overlay, because twister applies one
+ * EXTRA_DTC_OVERLAY_FILE value per scenario and the system scenario needs both.
+ *
+ * Every board target in platform_allow gets the state list from its SoC dtsi
+ * already, on every channel rather than just channel 0, so the list below restates
+ * what is there. It is kept so the system layer does not depend on those dtsi
+ * commits being in the tree: on a checkout without them, this is what supplies it.
+ *
+ * All three states are listed because the MRT has one clock, the bus clock, which
+ * both gates the registers and runs the counters, and it is off in all three. Per
+ * MCX Nx4x RM Rev. 6_RC2 Table 336 the MRT row reads "Static" in Deep Sleep and
+ * Power Down with no LP alternative, so the counter stops there whatever the clock
+ * configuration does.
+ *
+ * Deep Power Down additionally gates the CORE domain and resets the registers.
+ */
+
+&mrt0_channel0 {
+	status = "okay";
+	zephyr,disabling-power-states = <&deepsleep &powerdown &deeppowerdown>;
+};
+
+&mrt0_channel1 {
+	status = "okay";
+	zephyr,disabling-power-states = <&deepsleep &powerdown &deeppowerdown>;
+};
