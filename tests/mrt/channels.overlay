@@ -1,0 +1,20 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Two channels, for every layer.
+ *
+ * No in-tree board enables more than mrt0_channel0, and a single channel cannot show
+ * the one thing this IP adds to the counter case before it: four channels share one
+ * clock gate and one policy count, so releasing or stopping one must leave a sibling
+ * running. Stacked on top of whatever the board target already applies, so a board
+ * that enables other channels keeps them.
+ */
+
+&mrt0_channel0 {
+	status = "okay";
+};
+
+&mrt0_channel1 {
+	status = "okay";
+};

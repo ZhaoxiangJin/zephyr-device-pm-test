@@ -1,0 +1,70 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+#
+# One scenario per layer, and the layer is named once, as a snippet.
+#
+# There is no boards/ directory: an MRT needs no external wiring and has no pins at
+# all, so nothing can collide with the console. Every scenario does need two channels,
+# which no board target enables on its own, so each one stacks channels.overlay --
+# except the system scenario, which stacks constraints.overlay instead because that
+# file carries both the channel enables and the state list.
+#
+# The targets are the MCX N boards that have an nxp,mrt node and the devicetree
+# properties this case asserts on. The driver's compatible also serves MCX W23x,
+# LPC55S6x, i.MX RT5xx/6xx/7xx and RW612; those parts get the channel-to-module power
+# domain reference but no state list, because their reference manuals have not been
+# read for this IP, so the system layer would assert nothing there.
+
+common:
+  tags:
+    - pm
+    - counter
+    - drivers
+  harness: ztest
+  platform_allow:
+    - frdm_mcxn947/mcxn947/cpu0
+    - frdm_mcxn947/mcxn947/cpu0/qspi
+    - frdm_mcxn236
+    - mcx_n9xx_evk/mcxn947/cpu0
+    - mcx_n9xx_evk/mcxn947/cpu0/qspi
+    - mcx_n5xx_evk/mcxn547/cpu0
+
+tests:
+  # The control. No snippet, so lib/pm_test's layer choice falls back to baseline.
+  drivers.pm.mrt.baseline:
+    extra_args:
+      - EXTRA_DTC_OVERLAY_FILE=channels.overlay
+
+  drivers.pm.mrt.device:
+    required_snippets:
+      - pm-device
+    extra_args:
+      - EXTRA_DTC_OVERLAY_FILE=channels.overlay
+
+  drivers.pm.mrt.runtime:
+    required_snippets:
+      - pm-runtime
+    extra_args:
+      - EXTRA_DTC_OVERLAY_FILE=channels.overlay
+
+  # constraints.overlay carries the channel enables as well as the state list, so
+  # this scenario stacks that one file rather than both.
+  drivers.pm.mrt.system:
+    required_snippets:
+      - pm-system
+    extra_args:
+      - EXTRA_DTC_OVERLAY_FILE=constraints.overlay
+
+  drivers.pm.mrt.sysmanaged:
+    required_snippets:
+      - pm-sysmanaged
+    extra_args:
+      - EXTRA_DTC_OVERLAY_FILE=channels.overlay
+
+  # The snippet applies the MCXN retained-SRAM constraint from the board target
+  # itself.
+  drivers.pm.mrt.dpd:
+    required_snippets:
+      - pm-dpd
+    extra_args:
+      - EXTRA_DTC_OVERLAY_FILE=channels.overlay
