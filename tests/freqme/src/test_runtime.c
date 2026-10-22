@@ -8,9 +8,9 @@
  * @brief The runtime layer: the consumer owns the reference.
  *
  * This driver takes no runtime reference of its own, in either mode, so the
- * consumer holds one for as long as it wants the monitor. Three claims: nothing is
- * measuring before a consumer asks, a call that would write the register block is
- * refused rather than silently lost while no reference is held, and what the
+ * consumer holds one for as long as it wants the monitor. Three claims: a call that
+ * would write the register block is refused rather than silently lost while no
+ * reference is held, the route is applied once the first reference is, and what the
  * consumer configured comes back with the reference -- a measured result that is
  * still readable while suspended, a MEASURE that still completes, and a WINDOW
  * monitor that resumes on its own.
@@ -31,7 +31,8 @@ ZTEST(freqme_pm, test_runtime_boots_without_a_consumer)
 	enum pm_device_state state;
 	uint32_t want_ref;
 	uint32_t want_tar;
-	struct freqme_image img;
+	uint32_t got_ref;
+	uint32_t got_tar;
 	int err;
 
 	zassert_true(pm_device_runtime_is_enabled(dev), "%s: runtime PM is not enabled",
@@ -49,11 +50,7 @@ ZTEST(freqme_pm, test_runtime_boots_without_a_consumer)
 		     "%s booted %s, want SUSPENDED or OFF under runtime PM", dev->name,
 		     pm_device_state_str(state));
 
-	/* Nothing may be measuring before a consumer has asked for it. */
-	zassert_false(freqme_measuring(), "%s: measuring before any consumer took a reference",
-		      dev->name);
-
-	/* And an unwrapped call is refused, not silently lost. */
+	/* An unwrapped call is refused, not silently lost. */
 	err = freqme_configure_measure(FREQME_WINDOW_NS);
 	zassert_equal(err, -EBUSY, "%s: configure() without a reference returned %d",
 		      dev->name, err);
@@ -66,15 +63,15 @@ ZTEST(freqme_pm, test_runtime_boots_without_a_consumer)
 	 */
 	zassert_ok(pm_device_runtime_get(dev), "%s: runtime_get rejected", dev->name);
 	freqme_default_route(&want_ref, &want_tar);
-	freqme_image_read(&img);
+	freqme_route_read(&got_ref, &got_tar);
 	(void)pm_device_runtime_put(dev);
 
-	zassert_equal(img.route_ref, want_ref,
+	zassert_equal(got_ref, want_ref,
 		      "%s: FREQMEAS_REF %u once the first reference is held, want %u",
-		      dev->name, img.route_ref, want_ref);
-	zassert_equal(img.route_tar, want_tar,
+		      dev->name, got_ref, want_ref);
+	zassert_equal(got_tar, want_tar,
 		      "%s: FREQMEAS_TAR %u once the first reference is held, want %u",
-		      dev->name, img.route_tar, want_tar);
+		      dev->name, got_tar, want_tar);
 }
 
 ZTEST(freqme_pm, test_runtime_measure_survives_a_put)

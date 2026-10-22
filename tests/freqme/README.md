@@ -22,8 +22,12 @@ does not fault.
   rate reports on every window, so whether callbacks arrive is a direct reading of
   whether the hardware is monitoring.
 
-What is not observable: whether the peripheral clock gate is open. The case does not
-need it — the driver never closes it — and a register read does not depend on it.
+What is not observable: whether the peripheral clock gate is open, and anything in
+the block before the first `configure()`. Until then the block can still be held in
+peripheral reset, where a read faults — on MCX A it is, and a `CTRLSTAT` read there is
+a precise bus fault — so the case reads FREQME registers only after configuring, and
+the route only once the device has been turned on. That nothing is measuring at boot
+is therefore asserted through the API, not the registers.
 
 ## What each layer claims
 
@@ -31,7 +35,7 @@ need it — the driver never closes it — and a register read does not depend o
 | --- | --- |
 | `baseline` | a measurement is plausible, the route matches the devicetree, a configured block is distinguishable from reset, and WINDOW is silent on a good clock and reports on a bad one |
 | `device` | `SUSPEND` stops a running monitor and clears the interrupt enables; `RESUME` re-arms it with no `start()`; a `MEASURE` started after a plain suspend/resume still delivers its callback; `TURN_ON` rebuilds a clobbered block and route and leaves it not measuring |
-| `runtime` | the device boots with nothing measuring; a `configure()` without a reference is refused with `-EBUSY`; the route is applied once the first reference is held, even when the device booted OFF; the measured result stays readable while suspended; `MEASURE` and `WINDOW` both come back with the reference |
+| `runtime` | a `configure()` without a reference is refused with `-EBUSY`; the route is applied once the first reference is held, even when the device booted OFF; the measured result stays readable while suspended; `MEASURE` and `WINDOW` both come back with the reference |
 | `system` | the power-state lock covers exactly the declared states while measuring, is released by the interrupt that completes a `MEASURE`, and follows `WINDOW` monitoring across `stop()`, a suspend and a resume |
 | `sysmanaged` | across Deep Sleep the block keeps its registers, the selected route survives and monitoring is re-armed |
 | `dpd` | across Deep Power Down the block loses its registers and `TURN_ON` rebuilds them and the selected route, and monitoring is re-armed |
