@@ -1,0 +1,15 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * This board target does not enable FREQME or the INPUTMUX that routes its clocks,
+ * and both are needed: the SoC dtsi declares them disabled.
+ */
+
+&inputmux0 {
+	status = "okay";
+};
+
+&freqme0 {
+	status = "okay";
+};

@@ -1,0 +1,22 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * System-PM constraint layer: mark which SoC power states stop this FREQME
+ * measuring. Stacked on top of whatever the board target already applies, for the
+ * system layer only (via EXTRA_DTC_OVERLAY_FILE).
+ *
+ * Every board target in platform_allow gets this list from its SoC dtsi, so this
+ * restates what is already there. It is kept so the system layer does not depend on
+ * those dtsi commits being in the tree: on a checkout without them, this is what
+ * supplies the list.
+ *
+ * All three states are listed on every part. The block does not run in Power Down,
+ * Deep Power Down gates the CORE domain and resets it, and in Deep Sleep whether a
+ * measurement survives depends on the part and on the clocks selected: per MCX Nx4x
+ * RM Rev. 6_RC2 Table 336 the FREQME row is Static in Deep Sleep.
+ */
+
+&freqme0 {
+	zephyr,disabling-power-states = <&deepsleep &powerdown &deeppowerdown>;
+};
