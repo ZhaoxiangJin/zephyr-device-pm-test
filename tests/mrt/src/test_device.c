@@ -181,6 +181,15 @@ ZTEST(mrt_pm, test_device_turn_on_rebuilds_the_block)
 	zassert_pm_state(module, PM_DEVICE_STATE_SUSPENDED);
 
 	/*
+	 * A redundant action must be refused, not obeyed and not fatal. TURN_ON's
+	 * target state is SUSPENDED, which the module is now in, so the core refuses
+	 * it before the callback.
+	 */
+	err = pm_device_action_run(module, PM_DEVICE_ACTION_TURN_ON);
+	zassert_equal(err, -EALREADY, "%s: redundant TURN_ON returned %d, want -EALREADY",
+		      module->name, err);
+
+	/*
 	 * TURN_ON borrowed the clock to rebuild the block and handed it back, so the
 	 * module is configured and genuinely gated. That is the one thing observable
 	 * between TURN_ON and RESUME: the registers cannot be read yet.
@@ -218,8 +227,12 @@ ZTEST(mrt_pm, test_device_turn_on_rebuilds_the_block)
 		(void)mrt_stop(c);
 	}
 
-	/* A redundant action must be refused, not obeyed and not fatal. */
+	/*
+	 * An action that is neither redundant nor reachable from here is refused too,
+	 * and differently: the module is ACTIVE, which is neither TURN_ON's target nor
+	 * the OFF state it expects to start from.
+	 */
 	err = pm_device_action_run(module, PM_DEVICE_ACTION_TURN_ON);
-	zassert_equal(err, -EALREADY, "%s: second TURN_ON returned %d, want -EALREADY",
+	zassert_equal(err, -ENOTSUP, "%s: TURN_ON from ACTIVE returned %d, want -ENOTSUP",
 		      module->name, err);
 }
