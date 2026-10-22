@@ -1,0 +1,32 @@
+{
+ "run": "20261022-mrt-dapeng-case-fixes",
+ "date": "2026-10-22",
+ "case": "mrt",
+ "where": "dapeng",
+ "zephyr": "7bc85c05b0f",
+ "harness": "81c45f0",
+ "targets": {
+  "frdm_mcxn236": {
+   "job": "2331081",
+   "layers": {
+    "baseline": "pass",
+    "device": "pass",
+    "runtime": "pass",
+    "system": "pass",
+    "sysmanaged": "pass",
+    "dpd": "pass"
+   }
+  },
+  "frdm_mcxn947/mcxn947/cpu0": {
+   "job": "2331081",
+   "layers": {
+    "baseline": "pass",
+    "device": "pass",
+    "runtime": "pass",
+    "system": "pass",
+    "sysmanaged": "pass",
+    "dpd": "pass"
+   }
+  }
+ }
+}
