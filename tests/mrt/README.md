@@ -14,56 +14,67 @@ answers while the block is clocked, and whether it is clocked is the question. T
 MRT has exactly one clock and it both gates the registers and runs the counters, so
 gating it is the whole of what a suspend does and it stops all four channels at once.
 
-**The per-channel register image** — `CTRL`, `INTVAL[IVALUE]`, `STAT[RUN]`. `CTRL`
-carries the interrupt enable the module's turn-on action rewrites; `INTVAL` carries
-the period; `STAT[RUN]` says whether the channel is counting. Nothing else in the
-block holds them.
+**The per-channel register image** — `CTRL` (the interrupt enable the module's turn-on
+rewrites), `INTVAL[IVALUE]` (the period) and `STAT[RUN]` (whether it is counting).
 
 **A channel whose top callback keeps arriving**, as the control. It is what makes
 "the gate is open" mean the peripheral works rather than that a bit is set.
 
-Two channels are enabled by every scenario, from `channels.overlay`, because no
-in-tree board enables more than `mrt0_channel0` and a single channel cannot show the
-one thing this IP adds: four channels share one gate and one policy count, so
-releasing or stopping one must leave a sibling running.
+Every scenario enables two channels from `channels.overlay`, because no board enables
+more than `mrt0_channel0` and one channel cannot show what this IP adds: four channels
+share one gate and one policy count, so releasing or stopping one must leave a sibling
+running.
 
 ## What this case does not claim
 
 It makes **no claim about a count value or a period surviving a power cycle**.
-`INTVAL` is both the period register and the start trigger — writing a nonzero
-`IVALUE` to an idle channel starts it immediately — so there is no way to restore a
-period without also restarting a run the consumer did not ask for, and the driver
-does not try. A channel comes back idle. The `dpd` assertion is therefore
-behavioural: a channel started *fresh* after the round trip has to deliver
-callbacks, which it cannot unless the module's `TURN_ON` re-ran the bring-up and
-re-connected the shared interrupt.
+`INTVAL` is both the period register and the start trigger, so a period cannot be
+restored without restarting a run nobody asked for; the driver does not try, and a
+channel comes back idle. The `dpd` assertion is behavioural instead: a channel started
+fresh has to deliver callbacks, which needs `TURN_ON` to have re-run the bring-up.
 
-It does not read the period back through `counter_get_top_value()`. That call
-answers from the driver's RAM copy by design, so it would agree with itself whatever
-the register held. The register image is read straight out of the block.
+It does not read the period back through `counter_get_top_value()`, which answers from
+the driver's RAM copy by design and would agree with itself whatever the register held.
 
 It asserts nothing about any family other than MCX N. The driver's compatible also
 serves MCX W23x, LPC55S6x, i.MX RT5xx/6xx/7xx and RW612; those parts carry the
 channel-to-module power domain reference but no `zephyr,disabling-power-states`,
 because their reference manuals have not been read for this IP.
 
-## Expected per layer
+## What each layer asserts
 
 | Layer | What the MRT case asserts |
 |---|---|
 | `baseline` | with `PM_DEVICE=n` a channel counts and its top callback keeps arriving |
-| `device` | the module's `SUSPEND` closes the gate and keeps every channel's image, its `RESUME` re-opens it, a channel's own `SUSPEND` touches no register, and `TURN_ON` rebuilds a cleared `CTRL` while leaving the gate closed |
+| `device` | the module's `SUSPEND` closes the gate and keeps every channel's image, its `RESUME` re-opens it, a channel's own `SUSPEND` touches no register, and `TURN_ON` rebuilds a cleared `CTRL`, leaves `INTVAL` idle and leaves the gate closed |
 | `runtime` | the channels booted suspended or off with the gate closed, the reference count on the module behaves, and releasing one channel leaves a sibling counting |
 | `system` | the policy lock matches each channel's declared states, follows that channel across a suspend and a resume, and is not released while another channel still needs it |
 | `sysmanaged` | the sweep keeps the block powered, so the programmed period comes back and the callbacks resume on their own |
 | `dpd` | the block really lost power — the period did not come back — and a channel started fresh afterwards delivers callbacks |
 
-`TURN_ON` deliberately does not reprogram `INTVAL`, so the `device` layer also
-asserts that a channel comes back idle rather than restarted.
+## Expected per layer
 
-`device` and `sysmanaged` look similar and are not: one drives the callbacks
-directly, the other goes through the sweep the PM subsystem runs.
+Measured on Dapeng job 2331081 at zephyr `7bc85c05b0f` and harness `81c45f0` —
+[../../results/20261022-mrt-dapeng-case-fixes.json](../../results/20261022-mrt-dapeng-case-fixes.json).
+`81c45f0` is on `mrt-case`; its `tests/mrt` is identical to `e2ec48e` on `main`. 12 of 12
+built, 12 of 12 ran, no assertion failed and none skipped.
 
-## Results
+| Layer | n947 | n236 |
+| --- | --- | --- |
+| `baseline` | PASS | PASS |
+| `device` | PASS | PASS |
+| `runtime` | PASS | PASS |
+| `system` | PASS | PASS |
+| `sysmanaged` | PASS | PASS |
+| `dpd` | PASS | PASS |
 
-`results/<date>-mrt-<where>.json`, verdict vocabulary from `docs/results.md`.
+In `dpd` a channel enters Deep Power Down with `INTVAL=1500000 RUN=1` and comes back with
+`INTVAL=0 RUN=0` and `CTRL[INTEN]` set, then delivers callbacks once started.
+
+The first run, job 2330465
+([../../results/20261022-mrt-dapeng.json](../../results/20261022-mrt-dapeng.json)), failed
+`device` and `system` on both boards. Both were case defects, fixed in `f5edf94` and
+`e2ec48e`; the driver did not change between the two jobs.
+
+One board per SoC devicetree ran. `mcx_n9xx_evk`, `mcx_n5xx_evk` and the `qspi` variants
+include the same two dtsi files and were not in either job.
