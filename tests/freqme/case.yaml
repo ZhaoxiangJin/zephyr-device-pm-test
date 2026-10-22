@@ -1,0 +1,12 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+#
+# What this case covers, for the Device PM report. See docs/authoring-a-case.md.
+
+case: freqme
+ip: FREQME
+compatibles:
+  - nxp,freqme
+drivers:
+  - drivers/clock_monitor/clock_monitor_nxp_freqme.c
+  - drivers/mux/mux_nxp_inputmux.c

@@ -1,0 +1,62 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+#
+# One scenario per layer, and the layer is named once, as a snippet.
+#
+# The board list is every target whose devicetree can enable freqme0. Most enable it
+# in their own devicetree together with inputmux0; frdm_mcxn947 and frdm_mcxa346 do
+# not, so boards/ enables both for them. The qspi variants are left out: they build
+# the same SoC dtsi as the targets listed.
+
+common:
+  tags:
+    - pm
+    - clock_monitor
+    - drivers
+  harness: ztest
+  platform_allow:
+    # MCXN
+    - frdm_mcxn947/mcxn947/cpu0
+    - frdm_mcxn236
+    - mcx_n9xx_evk/mcxn947/cpu0
+    - mcx_n5xx_evk/mcxn547/cpu0
+    # MCXA
+    - frdm_mcxa153
+    - frdm_mcxa156
+    - frdm_mcxa266
+    - frdm_mcxa344
+    - frdm_mcxa346
+    - frdm_mcxa366
+    - frdm_mcxa577
+
+tests:
+  # The control. No snippet, so lib/pm_test's layer choice falls back to baseline.
+  drivers.pm.freqme.baseline: {}
+
+  drivers.pm.freqme.device:
+    required_snippets:
+      - pm-device
+
+  drivers.pm.freqme.runtime:
+    required_snippets:
+      - pm-runtime
+
+  # Every target's SoC dtsi declares the state list itself, so the overlay restates
+  # it; it is kept so this layer does not depend on those dtsi commits being in the
+  # tree. Stacked with EXTRA_DTC_OVERLAY_FILE so anything the board target applies
+  # still applies.
+  drivers.pm.freqme.system:
+    required_snippets:
+      - pm-system
+    extra_args:
+      - EXTRA_DTC_OVERLAY_FILE=constraints.overlay
+
+  drivers.pm.freqme.sysmanaged:
+    required_snippets:
+      - pm-sysmanaged
+
+  # One scenario for both SoC families: the snippet applies the MCXN retained-SRAM
+  # constraint from the board target itself.
+  drivers.pm.freqme.dpd:
+    required_snippets:
+      - pm-dpd
