@@ -1,0 +1,32 @@
+{
+ "run": "20261022-mrt-dapeng",
+ "date": "2026-10-22",
+ "case": "mrt",
+ "where": "dapeng",
+ "zephyr": "84a7ea16e0f",
+ "harness": "7b3f5f2",
+ "targets": {
+  "frdm_mcxn236": {
+   "job": "2330465",
+   "layers": {
+    "baseline": "pass",
+    "device": "fail",
+    "runtime": "pass",
+    "system": "fail",
+    "sysmanaged": "pass",
+    "dpd": "pass"
+   }
+  },
+  "frdm_mcxn947/mcxn947/cpu0": {
+   "job": "2330465",
+   "layers": {
+    "baseline": "pass",
+    "device": "fail",
+    "runtime": "pass",
+    "system": "fail",
+    "sysmanaged": "pass",
+    "dpd": "pass"
+   }
+  }
+ }
+}
