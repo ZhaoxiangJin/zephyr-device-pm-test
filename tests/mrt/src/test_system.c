@@ -19,8 +19,15 @@
  * The list is on the channel and not on the module because the channel is the device
  * a consumer holds and the device the driver passes to
  * pm_policy_device_power_lock_get(). That placement is what the third test is about:
- * the policy count is per state and refcounted, so two running channels hold a state
- * twice and stopping one must leave the other's protection standing.
+ * the policy count is per state and refcounted, so two running channels hold each
+ * declared state twice and releasing one must leave it locked for the other.
+ *
+ * Two things every test here has to do. The console holds policy locks of its own
+ * while it is draining, so pm_test_console_quiesce() comes before every
+ * locked_states() read. And the channel's clock belongs to the module, which only
+ * resumes when a channel claims it, so a reference is taken before the counter is
+ * expected to run at all. Samples are taken first, references released next, and
+ * only then asserted, so a failing assertion cannot leave a lock behind.
  */
 
 #include <zephyr/pm/device.h>
@@ -81,31 +88,57 @@ ZTEST(mrt_pm, test_system_constraint_covers_the_declared_states)
 {
 	MRT_FOREACH_CASE(c) {
 		unsigned int before;
+		unsigned int after_get;
+		unsigned int while_counting;
+		unsigned int after_stop;
+		unsigned int mismatch;
 		unsigned int declared = declared_states(c->dev);
+		int start_rc;
 
 		if (declared == 0U) {
-			TC_PRINT("%s: declares no disabling power states, nothing asserted\n",
+			TC_PRINT("%s: declares no disabling power state, nothing asserted\n",
 				 c->dev->name);
 			continue;
 		}
 
+		pm_test_console_quiesce();
 		before = locked_states();
-		zassert_equal(before, 0U,
-			      "%s: %u state(s) already locked before the channel started",
-			      c->dev->name, before);
 
-		zassert_ok(mrt_start(c), "%s: could not start the channel", c->dev->name);
-		zassert_true(mrt_wait_ticks(c, 2U, 500U), "%s: no callbacks", c->dev->name);
+		zassert_ok(pm_device_runtime_get(c->dev), "%s: runtime_get rejected",
+			   c->dev->name);
 
-		/* The claim: exactly the declared states, and no others. */
-		zassert_equal(constraint_mismatch(c->dev), 0U,
-			      "%s: %u locked state(s) do not match the %u the node declares",
-			      c->dev->name, locked_states(), declared);
+		/* Resumed, but the channel is not counting yet: nothing to protect. */
+		pm_test_console_quiesce();
+		after_get = locked_states();
 
+		start_rc = mrt_start(c);
+		while_counting = locked_states();
+		mismatch = constraint_mismatch(c->dev);
+
+		/* Released before anything is asserted: a failure must not leave a lock
+		 * behind, which would silently block those states for the rest of the run.
+		 */
 		(void)mrt_stop(c);
-		zassert_equal(locked_states(), 0U,
-			      "%s: %u state(s) still locked after the channel stopped",
-			      c->dev->name, locked_states());
+		(void)pm_device_runtime_put(c->dev);
+
+		pm_test_console_quiesce();
+		after_stop = locked_states();
+
+		zassert_equal(before, 0U, "%s: %u power state(s) were already locked",
+			      c->dev->name, before);
+		zassert_ok(start_rc, "%s: could not program and start the channel (%d)",
+			   c->dev->name, start_rc);
+		zassert_equal(after_get, 0U,
+			      "%s: %u power state(s) locked by a resumed but stopped channel",
+			      c->dev->name, after_get);
+		zassert_equal(while_counting, declared,
+			      "%s: %u state(s) locked while counting, %u declared",
+			      c->dev->name, while_counting, declared);
+		zassert_equal(mismatch, 0U,
+			      "%s: %u power state(s) whose lock does not match the node",
+			      c->dev->name, mismatch);
+		zassert_equal(after_stop, 0U, "%s: %u power state(s) still locked after stop",
+			      c->dev->name, after_stop);
 	}
 }
 
@@ -113,41 +146,64 @@ ZTEST(mrt_pm, test_system_constraint_follows_the_channel)
 {
 	MRT_FOREACH_CASE(c) {
 		unsigned int declared = declared_states(c->dev);
+		unsigned int while_counting;
+		unsigned int while_suspended;
+		unsigned int after_resume;
+		unsigned int at_end;
+		int start_rc;
+		bool counting_after_resume;
 
 		if (declared == 0U) {
-			TC_PRINT("%s: declares no disabling power states, nothing asserted\n",
+			TC_PRINT("%s: declares no disabling power state, nothing asserted\n",
 				 c->dev->name);
 			continue;
 		}
 
-		zassert_ok(mrt_start(c), "%s: could not start the channel", c->dev->name);
-		zassert_equal(locked_states(), declared, "%s: %u state(s) locked, want %u",
-			      c->dev->name, locked_states(), declared);
+		pm_test_console_quiesce();
+
+		zassert_ok(pm_device_runtime_get(c->dev), "%s: runtime_get rejected",
+			   c->dev->name);
+		start_rc = mrt_start(c);
+		while_counting = locked_states();
+
+		/* The last reference goes away, so the driver suspends the channel -- and
+		 * with it the reason for the lock.
+		 */
+		(void)pm_device_runtime_put(c->dev);
+		pm_test_console_quiesce();
+		while_suspended = locked_states();
 
 		/*
-		 * A suspended channel is not counting, so holding off the states it
-		 * declares would keep the system out of them for a block with nothing to
-		 * lose there. The lock goes back on suspend.
+		 * A resume finds STAT[RUN] still set, so it has to take the protection
+		 * back: without it the channel comes back counting while the policy is
+		 * free to enter a state that gates its clock.
 		 */
-		zassert_ok(pm_device_action_run(c->dev, PM_DEVICE_ACTION_SUSPEND),
-			   "%s: SUSPEND action rejected", c->dev->name);
-		zassert_equal(locked_states(), 0U,
-			      "%s: %u state(s) still locked while the channel is suspended",
-			      c->dev->name, locked_states());
-
-		/* And comes back on resume, because STAT[RUN] is still set. */
-		zassert_true(mrt_running(c),
-			     "%s: the channel stopped counting across a suspend that only "
-			     "released the lock", c->dev->name);
-		zassert_ok(pm_device_action_run(c->dev, PM_DEVICE_ACTION_RESUME),
-			   "%s: RESUME action rejected", c->dev->name);
-		zassert_equal(locked_states(), declared,
-			      "%s: %u state(s) locked after RESUME, want %u", c->dev->name,
-			      locked_states(), declared);
+		zassert_ok(pm_device_runtime_get(c->dev), "%s: second runtime_get rejected",
+			   c->dev->name);
+		counting_after_resume = mrt_advances(c);
+		after_resume = locked_states();
 
 		(void)mrt_stop(c);
-		zassert_equal(locked_states(), 0U, "%s: %u state(s) left locked",
-			      c->dev->name, locked_states());
+		(void)pm_device_runtime_put(c->dev);
+		pm_test_console_quiesce();
+		at_end = locked_states();
+
+		zassert_ok(start_rc, "%s: could not program and start the channel (%d)",
+			   c->dev->name, start_rc);
+		zassert_equal(while_counting, declared,
+			      "%s: %u state(s) locked while counting, %u declared",
+			      c->dev->name, while_counting, declared);
+		zassert_equal(while_suspended, 0U,
+			      "%s: %u power state(s) still locked while suspended",
+			      c->dev->name, while_suspended);
+		zassert_true(counting_after_resume,
+			     "%s: the channel is not counting after resume", c->dev->name);
+		zassert_equal(after_resume, declared,
+			      "%s: %u state(s) locked after the channel came back, %u declared",
+			      c->dev->name, after_resume, declared);
+		zassert_equal(at_end, 0U,
+			      "%s: %u power state(s) leaked past the end of the test",
+			      c->dev->name, at_end);
 	}
 }
 
@@ -156,6 +212,12 @@ ZTEST(mrt_pm, test_system_one_channel_does_not_release_another)
 	const struct mrt_case *first = &mrt_cases[0];
 	const struct mrt_case *second;
 	unsigned int declared;
+	unsigned int both_running;
+	unsigned int one_released;
+	unsigned int at_end;
+	bool first_still_running;
+	int first_rc;
+	int second_rc;
 
 	if (MRT_CASE_COUNT < 2) {
 		TC_PRINT("only one channel is enabled, so no sibling to protect\n");
@@ -166,30 +228,48 @@ ZTEST(mrt_pm, test_system_one_channel_does_not_release_another)
 	declared = declared_states(first->dev);
 
 	if (declared == 0U) {
-		TC_PRINT("the channels declare no disabling power states, nothing asserted\n");
+		TC_PRINT("the channels declare no disabling power state, nothing asserted\n");
 		ztest_test_skip();
 	}
 
-	zassert_ok(mrt_start(first), "%s: could not start", first->dev->name);
-	zassert_ok(mrt_start(second), "%s: could not start", second->dev->name);
-	zassert_equal(locked_states(), declared, "%u state(s) locked with two channels "
-		      "running, want %u", locked_states(), declared);
+	zassert_ok(pm_device_runtime_get(first->dev), "%s: runtime_get rejected",
+		   first->dev->name);
+	zassert_ok(pm_device_runtime_get(second->dev), "%s: runtime_get rejected",
+		   second->dev->name);
+
+	first_rc = mrt_start(first);
+	second_rc = mrt_start(second);
+
+	pm_test_console_quiesce();
+	both_running = locked_states();
 
 	/*
 	 * The claim of this test. The policy count is per state and refcounted, so two
-	 * running channels hold each declared state twice. Stopping one takes the count
-	 * to one, not to zero, and the state stays blocked for the channel still
-	 * running.
+	 * running channels hold each declared state twice. Taking one away leaves the
+	 * count at one, and the state stays blocked for the channel still counting.
 	 */
 	(void)mrt_stop(second);
-	zassert_equal(locked_states(), declared,
-		      "stopping %s released the states %s still needs: %u locked, want %u",
-		      second->dev->name, first->dev->name, locked_states(), declared);
-	zassert_true(mrt_running(first), "%s: stopped when %s did", first->dev->name,
-		     second->dev->name);
+	(void)pm_device_runtime_put(second->dev);
 
-	/* Only the last one out releases them. */
+	first_still_running = mrt_running(first);
+	pm_test_console_quiesce();
+	one_released = locked_states();
+
 	(void)mrt_stop(first);
-	zassert_equal(locked_states(), 0U,
-		      "%u state(s) still locked after both channels stopped", locked_states());
+	(void)pm_device_runtime_put(first->dev);
+	pm_test_console_quiesce();
+	at_end = locked_states();
+
+	zassert_ok(first_rc, "%s: could not start (%d)", first->dev->name, first_rc);
+	zassert_ok(second_rc, "%s: could not start (%d)", second->dev->name, second_rc);
+	zassert_equal(both_running, declared,
+		      "%u state(s) locked with two channels running, %u declared",
+		      both_running, declared);
+	zassert_true(first_still_running, "%s: stopped when %s did", first->dev->name,
+		     second->dev->name);
+	zassert_equal(one_released, declared,
+		      "releasing %s released the states %s still needs: %u locked, want %u",
+		      second->dev->name, first->dev->name, one_released, declared);
+	zassert_equal(at_end, 0U, "%u state(s) still locked after both channels stopped",
+		      at_end);
 }
