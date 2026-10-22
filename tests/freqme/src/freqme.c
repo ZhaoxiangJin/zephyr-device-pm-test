@@ -78,13 +78,18 @@ const struct device *freqme_dev(void)
 	return DEVICE_DT_GET(FREQME_NODE);
 }
 
+void freqme_route_read(uint32_t *ref, uint32_t *tar)
+{
+	*ref = reg_read(INPUTMUX_BASE + ROUTE_OFFSET(DEFAULT_REF_COOKIE));
+	*tar = reg_read(INPUTMUX_BASE + ROUTE_OFFSET(DEFAULT_TAR_COOKIE));
+}
+
 void freqme_image_read(struct freqme_image *img)
 {
 	img->ctrl = ctrlstat() & CTRLSTAT_CONFIG;
 	img->min = reg_read(freqme_base + FREQME_MIN_OFF);
 	img->max = reg_read(freqme_base + FREQME_MAX_OFF);
-	img->route_ref = reg_read(INPUTMUX_BASE + ROUTE_OFFSET(DEFAULT_REF_COOKIE));
-	img->route_tar = reg_read(INPUTMUX_BASE + ROUTE_OFFSET(DEFAULT_TAR_COOKIE));
+	freqme_route_read(&img->route_ref, &img->route_tar);
 }
 
 bool freqme_image_equal(const struct freqme_image *a, const struct freqme_image *b)
@@ -206,11 +211,21 @@ int freqme_measure_start(void)
 	return clock_monitor_start(freqme_dev());
 }
 
+/*
+ * Busy-waited rather than slept: a sleep lets the idle thread enter a power
+ * state in the layers that have one, and the sweep then suspends the device,
+ * which aborts the measurement being waited for.
+ */
 int freqme_measure_wait(uint32_t timeout_ms)
 {
-	if (k_sem_take(&measure_done, K_MSEC(timeout_ms)) != 0) {
-		(void)clock_monitor_stop(freqme_dev());
-		return -ETIMEDOUT;
+	int64_t end = k_uptime_get() + timeout_ms;
+
+	while (k_sem_take(&measure_done, K_NO_WAIT) != 0) {
+		if (k_uptime_get() >= end) {
+			(void)clock_monitor_stop(freqme_dev());
+			return -ETIMEDOUT;
+		}
+		k_busy_wait(100);
 	}
 
 	return 0;
@@ -287,12 +302,13 @@ bool freqme_window_events_arrive(uint32_t timeout_ms)
 {
 	int64_t end = k_uptime_get() + timeout_ms;
 
+	/* Busy-waited for the same reason as freqme_measure_wait(). */
 	freqme_window_events_reset();
 	while (k_uptime_get() < end) {
 		if (freqme_window_events() != 0U) {
 			return true;
 		}
-		k_msleep(1);
+		k_busy_wait(100);
 	}
 
 	return false;

@@ -7,9 +7,13 @@
  * @file
  * @brief What every layer of the FREQME case needs from the hardware.
  *
- * Three things are observed, all of them readable whether or not the block is
- * suspended: on these parts a FREQME register read with the peripheral gate
- * closed still returns the retained contents and does not fault.
+ * Three things are observed. The FREQME registers are read only once the
+ * instance has been configured: until the first configure() the block can still
+ * be held in peripheral reset, where an access faults, and under runtime PM it
+ * can still be ungated. Once configured they read back whether or not the device
+ * is suspended, because a read with the peripheral gate closed still returns the
+ * retained contents. The INPUTMUX route is read only once the device has been
+ * turned on, which is when it is applied.
  *
  * The control state, read back through CTRLSTAT. CTRL_W, which software writes,
  * is write-only, and CTRLSTAT mirrors every field of it: REF_SCALE, the mode
@@ -84,8 +88,11 @@ struct freqme_image {
 /** @brief The FREQME device. */
 const struct device *freqme_dev(void);
 
-/** @brief Sample @ref freqme_image. */
+/** @brief Sample @ref freqme_image. Only after the instance has been configured. */
 void freqme_image_read(struct freqme_image *img);
+
+/** @brief Read the INPUTMUX route alone, without touching the FREQME block. */
+void freqme_route_read(uint32_t *ref, uint32_t *tar);
 
 /** @brief True when two images are the same. */
 bool freqme_image_equal(const struct freqme_image *a, const struct freqme_image *b);

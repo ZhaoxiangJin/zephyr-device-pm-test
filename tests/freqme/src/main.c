@@ -24,8 +24,8 @@ static void *freqme_pm_setup(void)
 	freqme_enable_source_clocks();
 	freqme_report_configuration();
 
+	/* Nothing is read out of the block here: it has not been configured yet. */
 	pm_test_note_state(freqme_dev(), "at boot");
-	freqme_report_hw("at boot");
 
 	return NULL;
 }
