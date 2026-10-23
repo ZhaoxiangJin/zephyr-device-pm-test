@@ -33,6 +33,10 @@ a precise bus fault — so the case reads FREQME registers only after configurin
 the route only once the device has been turned on. That nothing is measuring at boot
 is therefore asserted through the API, not the registers.
 
+The main and ztest threads each have a 2048-byte stack for the configuration
+reports, assertions and immediate logging. The default 1024-byte main stack
+overflows during the runtime layer's suite setup on FRDM-MCXA153.
+
 ## What each layer claims
 
 | Layer | Claim |
