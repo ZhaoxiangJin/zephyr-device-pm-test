@@ -17,6 +17,10 @@ does not fault.
 - **The INPUTMUX route**, `FREQMEAS_REF` and `FREQMEAS_TAR`. It lives in another
   peripheral, so a block that measured correctly against the wrong clocks would pass
   every FREQME check. Its expected value comes from the devicetree connection cookie.
+  Route reads and deliberate writes enable the INPUTMUX clock with `INPUTMUX_Init()`
+  and release it with `INPUTMUX_Deinit()`, as the mux driver does. On MCXA, reading
+  the route with that clock gated causes a precise bus fault even after FREQME
+  has been configured.
 - **What the API reports**: a frequency within 5 % of 12 MHz for the default `FRO_12M`
   target, and WINDOW callbacks. A WINDOW monitor configured against twice the target's
   rate reports on every window, so whether callbacks arrive is a direct reading of
