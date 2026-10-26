@@ -9,6 +9,8 @@
 #include <zephyr/sys/util.h>
 #include <zephyr/ztest.h>
 
+#include <fsl_inputmux.h>
+
 #include "freqme.h"
 
 /* FREQME register offsets and CTRLSTAT fields, from the reference manual. */
@@ -80,8 +82,10 @@ const struct device *freqme_dev(void)
 
 void freqme_route_read(uint32_t *ref, uint32_t *tar)
 {
+	INPUTMUX_Init((void *)INPUTMUX_BASE);
 	*ref = reg_read(INPUTMUX_BASE + ROUTE_OFFSET(DEFAULT_REF_COOKIE));
 	*tar = reg_read(INPUTMUX_BASE + ROUTE_OFFSET(DEFAULT_TAR_COOKIE));
+	INPUTMUX_Deinit((void *)INPUTMUX_BASE);
 }
 
 void freqme_image_read(struct freqme_image *img)
@@ -131,8 +135,10 @@ void freqme_clobber(struct freqme_image *clobbered)
 	reg_write(freqme_base + FREQME_CTRL_W_OFF, CTRLSTAT_REF_SCALE);
 	reg_write(freqme_base + FREQME_MIN_OFF, 0x00ABCDEFU);
 	reg_write(freqme_base + FREQME_MAX_OFF, 0x00FEDCBAU);
+	INPUTMUX_Init((void *)INPUTMUX_BASE);
 	reg_write(INPUTMUX_BASE + ROUTE_OFFSET(DEFAULT_REF_COOKIE), 0x1FU);
 	reg_write(INPUTMUX_BASE + ROUTE_OFFSET(DEFAULT_TAR_COOKIE), 0x1FU);
+	INPUTMUX_Deinit((void *)INPUTMUX_BASE);
 	freqme_image_read(clobbered);
 }
 
