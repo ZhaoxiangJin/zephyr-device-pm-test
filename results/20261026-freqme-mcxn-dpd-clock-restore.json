@@ -1,0 +1,101 @@
+{
+  "date": "2026-10-26",
+  "scenario": "drivers.pm.freqme.dpd",
+  "board": "frdm_mcxn236/mcxn236",
+  "remote_board_id": 19612,
+  "remote_session": 2334872,
+  "verdict": "MCXN236 root cause verified and fixed; MCXN947 runtime not tested",
+  "cause": {
+    "register": "SYSCON.CLOCK_CTRL",
+    "address": "0x50000a18",
+    "original_image_post_dpd_value": "0x81",
+    "missing_fro12_output_enable_mask": "0x8",
+    "missing_fro_hf_output_enable_mask": "0x10",
+    "effect": "Board clock-tree initialization does not restore consumer-enabled source outputs. FREQME configuration and routing restore successfully but no source clock reaches the measurement block.",
+    "fix": "Save CLOCK_CTRL in retained static storage before S2RAM and restore it after board_early_init_hook, before device resume.",
+    "uart_domain_hypothesis": "Not the cause of the reproduced MCXN236 measurement failure: UART driver, LP_FLEXCOMM wrapper and MCXN domain wiring were unchanged in all arms. This does not validate all UART PM behavior."
+  },
+  "source": {
+    "zephyr_tree": "C:\\repos\\workspace\\zephyrproject\\zephyr-device-pm-freqme",
+    "file": "soc\\nxp\\mcx\\mcxn\\s2ram.c",
+    "sha256": "57D4B0CAA73A651AEFCB90A8862D27A57E38D7B90CF7A40B3354757A556A85AC",
+    "committed": false,
+    "pushed": false
+  },
+  "experiment": {
+    "method": "Native UART-only A/B/A; no GDB stream during any run. Same checkout, same Kconfig, same app and same MCXN UART/domain wiring. Negative control removes only CLOCK_CTRL preservation.",
+    "candidate_hex_sha256": "0F9DDB396CAA23320EB5F3CA7219E4AD0D4516E1677890953834E4D12CCF5D7D",
+    "final_rebuild_matches_tested_hex": true,
+    "runs": [
+      {
+        "arm": "clock restore",
+        "pass": 2,
+        "fail": 0,
+        "skip": 0,
+        "transition_seconds": 2.039,
+        "log": "C:\\builds\\freqme-mcxn-debug\\n236-candidate-run1.log"
+      },
+      {
+        "arm": "clock restore repeat",
+        "pass": 2,
+        "fail": 0,
+        "skip": 0,
+        "transition_seconds": 2.039,
+        "log": "C:\\builds\\freqme-mcxn-debug\\n236-candidate-run2.log"
+      },
+      {
+        "arm": "same-source negative control without clock restore",
+        "pass": 1,
+        "fail": 1,
+        "skip": 0,
+        "failure": "Post-DPD measurement assertion at test_lowpower.c:112",
+        "transition_seconds": 2.162,
+        "log": "C:\\builds\\freqme-mcxn-debug\\n236-negative-control.log"
+      },
+      {
+        "arm": "identical candidate reflashed after negative control",
+        "pass": 2,
+        "fail": 0,
+        "skip": 0,
+        "transition_seconds": 2.039,
+        "log": "C:\\builds\\freqme-mcxn-debug\\n236-candidate-run3-after-negative.log"
+      }
+    ],
+    "all_runs": {
+      "boot_count": 1,
+      "returned_to_existing_test_after_dpd": true,
+      "min_sentinel_before": "0x1e67",
+      "min_restored_after": "0x1e66",
+      "ref_route": 1,
+      "tar_route": 1
+    },
+    "post_resume_ctrlstat": {
+      "negative_control": "0xc000300d",
+      "candidate": "0xc400300d",
+      "difference": "RESULT_READY_STAT 0x04000000 appears with restored source output"
+    }
+  },
+  "validation": {
+    "mcxn236_build": "passed",
+    "mcxn947_build": "passed",
+    "checkpatch": "0 errors, 0 warnings",
+    "diff_check": "passed",
+    "known_build_warnings": [
+      "Existing implicit declaration of __rbit",
+      "ELF LOAD segment with RWX permissions"
+    ]
+  },
+  "limitations": [
+    "MCXN947 not run on hardware; the shared fix does not constitute its runtime verification.",
+    "MCXA344 excluded.",
+    "No new full-matrix job, commit or push.",
+    "Exact failing API return code was not captured; do not assert a measured ETIMEDOUT value.",
+    "Earlier direct-GDB gate-toggle attempts failed at the transport layer and are not causality evidence."
+  ],
+  "cleanup": {
+    "remote_session_released": true,
+    "no_remote_sessions_remaining": true,
+    "uart_forward_stopped": true,
+    "source_probes_added": false
+  }
+}

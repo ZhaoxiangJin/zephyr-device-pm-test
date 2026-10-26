@@ -17,6 +17,10 @@ does not fault.
 - **The INPUTMUX route**, `FREQMEAS_REF` and `FREQMEAS_TAR`. It lives in another
   peripheral, so a block that measured correctly against the wrong clocks would pass
   every FREQME check. Its expected value comes from the devicetree connection cookie.
+  Route reads and deliberate writes enable the INPUTMUX clock with `INPUTMUX_Init()`
+  and release it with `INPUTMUX_Deinit()`, as the mux driver does. On MCXA, reading
+  the route with that clock gated causes a precise bus fault even after FREQME
+  has been configured.
 - **What the API reports**: a frequency within 5 % of 12 MHz for the default `FRO_12M`
   target, and WINDOW callbacks. A WINDOW monitor configured against twice the target's
   rate reports on every window, so whether callbacks arrive is a direct reading of
@@ -28,6 +32,10 @@ peripheral reset, where a read faults — on MCX A it is, and a `CTRLSTAT` read 
 a precise bus fault — so the case reads FREQME registers only after configuring, and
 the route only once the device has been turned on. That nothing is measuring at boot
 is therefore asserted through the API, not the registers.
+
+The main and ztest threads each have a 2048-byte stack for the configuration
+reports, assertions and immediate logging. The default 1024-byte main stack
+overflows during the runtime layer's suite setup on FRDM-MCXA153.
 
 ## What each layer claims
 
@@ -56,7 +64,71 @@ devicetree; `boards/` enables both. Every other target in `platform_allow` enabl
 itself. The case turns on the clocks of every declared source with a `clocks` property
 before it starts, because the driver only queries them.
 
+## Low-power timer prerequisites
+
+The `sysmanaged` and `dpd` layers need a working system-timer wakeup path, not just
+FREQME device PM. When an OS Timer stops or loses its state in the selected power
+state, its `handoff-power-states` must include that state, and its idle-entry hook
+must arm the low-power companion for the actual sleep deadline. Selecting a
+companion alone does not schedule a wake alarm.
+
+Every enabled device that loses registers must also follow the power-domain
+lifecycle, including board-enabled UARTs that this case does not use. A UART
+without its CORE-domain association receives only ordinary `RESUME` after DPD,
+which can access an unclocked register instead of first restoring it through
+`TURN_ON`. Keep those devices enabled and describe their actual domain; disabling
+them or selecting a shallower state would not validate the same configuration.
+
+The `dpd` layer additionally requires transparent SoC S2RAM resume. A wakeup reset
+followed by a new boot banner is not a pass: execution must return to the existing
+test, restore the configured monitor and route, replace the deliberately
+overwritten `MIN`, and complete the post-transition measurement.
+
+On MCXN, S2RAM must also preserve the consumer-enabled source outputs in
+`SYSCON.CLOCK_CTRL`. Rebuilding the board clock tree does not restore the
+`FRO12MHZ_ENA` and `FRO_HF_ENA` outputs used by FREQME. A valid clock-rate query,
+restored route and asserted `MEASURE_IN_PROGRESS` do not prove that clock edges
+reach the block. Restore the saved output enables before device resume, rather
+than adding a post-wakeup source-clock enable to the test.
+
 ## Status
 
-Built and run status is in [../../results/](../../results/). A case that has never run
-is reported as exactly that.
+The latest recorded farm run is
+[Dapeng job 2334878](https://dapeng.nxp.com/app/request/2334878/testcases/).
+Its task CSV, exported at `2026-10-26T20:55:24.945158+08:00` without HTTP caching,
+reports **36/36 builds Pass and 36/36 latest run verdicts Pass**. The machine-readable
+record is [20261026-freqme-dapeng.json](../../results/20261026-freqme-dapeng.json).
+
+| Board | baseline | device | runtime | system | sysmanaged | dpd |
+| --- | --- | --- | --- | --- | --- | --- |
+| FRDM-MCXA153 | pass | pass | pass | pass | pass | pass |
+| FRDM-MCXA156 | pass | pass | pass | pass | pass | pass |
+| FRDM-MCXA346 | pass | pass | pass | pass | pass | pass |
+| FRDM-MCXA577 | pass | pass | pass | pass | pass | pass |
+| FRDM-MCXN236 | pass | pass | pass | pass | pass | pass |
+| FRDM-MCXN947 (CPU0) | pass | pass | pass | pass | pass | pass |
+
+The revisions that actually ran were Zephyr
+`000b7b83da1d848b366d405eb6c118a349fdf943` and harness
+`6b3da761c89dd34a7441effcc55990a956987d0d`; these are the pins in the record,
+not the later DCO-rewritten development heads.
+
+This is a latest-verdict result, not an all-first-attempt pass. These tasks needed
+more than one run; `run_times` includes the first run, not just retries. All now
+report Pass.
+
+| Board / layer | Task | First verdict | run_times |
+| --- | --- | --- | --- |
+| MCXA577 / baseline | [910632401](https://dapeng.nxp.com/app/task/910632401/) | No Output | 7 |
+| MCXA577 / device | [910632407](https://dapeng.nxp.com/app/task/910632407/) | No Output | 3 |
+| MCXA577 / system | [910632419](https://dapeng.nxp.com/app/task/910632419/) | No Output | 4 |
+| MCXA577 / sysmanaged | [910632425](https://dapeng.nxp.com/app/task/910632425/) | No Output | 3 |
+| MCXN236 / sysmanaged | [910632423](https://dapeng.nxp.com/app/task/910632423/) | Download Error | 2 |
+| MCXN236 / dpd | [910632429](https://dapeng.nxp.com/app/task/910632429/) | Fail | 2 |
+| MCXN947 / baseline | [910632403](https://dapeng.nxp.com/app/task/910632403/) | No Output | 2 |
+| MCXN947 / runtime | [910632415](https://dapeng.nxp.com/app/task/910632415/) | Download Error | 3 |
+
+Rerun success does not establish why the earlier attempts failed. MCXA344 was
+intentionally excluded, and the other declared targets outside the six boards
+above were not covered by this job. Earlier local records in
+[../../results/](../../results/) remain unchanged as historical evidence.
