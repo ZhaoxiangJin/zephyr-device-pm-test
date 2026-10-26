@@ -38,16 +38,10 @@ void pm_test_console_quiesce(void)
 #define CONSOLE_PARENT DT_PARENT(CONSOLE_NODE)
 
 /*
- * Deep Power Down resets every CORE-domain peripheral. A device under test looks
- * after itself: the core domain hands it TURN_ON and its driver restores it --
- * that is the whole claim of the dpd layer. The console is different. It is on the
- * same domain but is not what is being tested, and its driver has no restore hook,
- * so bring it back by hand, bottom up: the PORT pin-mux gates, then the
- * LP_FLEXCOMM parent if there is one, then the LPUART.
- *
- * Re-running an initialised device's init function is not something an application
- * may do; it is done here because the alternative is a test that cannot report its
- * own result.
+ * Deep Power Down resets CORE-domain peripherals. The device under test is
+ * restored through TURN_ON. This helper separately reinitializes the reporting
+ * console: PORT pin-mux devices when requested, the LP_FLEXCOMM parent when
+ * present, then LPUART.
  */
 #define REINIT_DEVICE(dev)                                                                         \
 	do {                                                                                       \
