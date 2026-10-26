@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # Copyright 2026 NXP
 # SPDX-License-Identifier: Apache-2.0
-"""Turn a twister report into a run record under results/.
+"""Turn a twister report into a result record under results/.
 
 The verdict per layer comes from twister's own twister.json, never from a human
-reading a console log. Everything this script writes is a machine fact; the
-argument about what a failure *means* belongs in docs/findings.md, and the
-provenance a later reader cannot reconstruct -- which station, why a target was
-unreachable -- is what the --note and --blocked options are for.
+reading a console log. Records contain outcomes and tested revisions, not
+execution steps or retry history. Failure analysis belongs in docs/findings.md;
+--job and --station identify the result source, and --blocked records targets
+that could not produce a verdict. Each case has one <case>.json file, replaced
+by its latest collected result.
 
 Standard library only: this runs on a farm image with no pip.
 """
@@ -19,6 +20,7 @@ import datetime
 import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -37,9 +39,8 @@ VERDICT_OF_STATUS = {
     "blocked": "blocked",
 }
 
-# "It ran on the board" outranks "it compiled", which outranks "it never got
-# there". Within a rank the later date wins, so a fresh skip supersedes an old
-# pass rather than being hidden by it.
+# Within one report, execution evidence outranks build-only or blocked suites.
+# For equal ranks, the later suite wins.
 VERDICT_RANK = {"blocked": 0, "built": 1, "skipped": 2, "fail": 3, "pass": 3}
 
 
@@ -160,14 +161,12 @@ def main() -> int:
                     help="twister output directory holding twister.json")
     ap.add_argument("--where", required=True,
                     help="how the run happened: dapeng, local, build-sweep")
-    ap.add_argument("--tag", help="suffix for the file name, e.g. pd-guard")
+    ap.add_argument("--tag", help="suffix for the run identifier, e.g. pd-guard")
     ap.add_argument("--date", help="YYYY-MM-DD; defaults to the twister run date")
     ap.add_argument("--zephyr", help="override the Zephyr commit twister reported")
     ap.add_argument("--harness", help="override this repository's commit")
     ap.add_argument("--job", action="append", default=[], metavar="TARGET=ID")
     ap.add_argument("--station", action="append", default=[], metavar="TARGET=ID")
-    ap.add_argument("--note", action="append", default=[], metavar="TARGET=TEXT",
-                    help="run provenance only; never analysis")
     ap.add_argument("--blocked", action="append", default=[], metavar="TARGET",
                     help="target that never reached a board; every layer is recorded blocked")
     ap.add_argument("--blocked-layer", action="append", default=[], metavar="LAYER",
@@ -182,7 +181,7 @@ def main() -> int:
                     help="only write these cases; default is every case in the report")
     ap.add_argument("--outdir", type=Path, default=REPO / "results")
     ap.add_argument("--force", action="store_true",
-                    help="overwrite an existing file for this date/case/where")
+                    help="allow an older result to replace the current case result")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
@@ -221,12 +220,15 @@ def main() -> int:
     env = report.get("environment", {})
     date = args.date or (env.get("run_date") or "")[:10] \
         or datetime.date.today().isoformat()
+    try:
+        date = datetime.date.fromisoformat(date).isoformat()
+    except ValueError:
+        return f"invalid run date {date!r}; expected YYYY-MM-DD"
     zephyr = args.zephyr or env.get("zephyr_version", "unknown")
     harness = args.harness or git_describe(REPO)
 
     jobs = parse_assignments(args.job, "job")
     stations = parse_assignments(args.station, "station")
-    notes = parse_assignments(args.note, "note")
 
     wanted = set(args.case) or set(cases)
     unknown = wanted - set(cases)
@@ -246,7 +248,7 @@ def main() -> int:
                 found = {layer: ("blocked" if layer in args.blocked_layer else verdict)
                          for layer, verdict in found.items()}
             entry = {}
-            for key, table in (("job", jobs), ("station", stations), ("note", notes)):
+            for key, table in (("job", jobs), ("station", stations)):
                 if target in table:
                     entry[key] = table[target]
             entry["layers"] = dict(sorted(found.items()))
@@ -263,16 +265,26 @@ def main() -> int:
             "targets": targets,
         }
         text = json.dumps(record, indent=2) + "\n"
-        path = args.outdir / f"{stem}.json"
+        path = args.outdir / f"{case}.json"
+
+        if path.exists() and not args.force:
+            previous = json.loads(path.read_text())
+            if date < previous["date"]:
+                return (f"{path.name} records {previous['date']}, newer than {date}; "
+                        f"use --force only to intentionally replace it with an older result")
 
         if args.dry_run:
             print(f"--- {path}")
             print(text, end="")
             continue
-        if path.exists() and not args.force:
-            return (f"{path.name} exists. A new run is a new file -- pass --tag to name "
-                    f"this one, or --force if you are correcting the same run")
-        path.write_text(text, newline="\n")
+        with tempfile.NamedTemporaryFile(dir=args.outdir, prefix=f".{case}-",
+                                         suffix=".tmp", delete=False) as pending:
+            temporary = Path(pending.name)
+        try:
+            temporary.write_text(text, encoding="utf-8", newline="\n")
+            temporary.replace(path)
+        finally:
+            temporary.unlink(missing_ok=True)
         tally = {}
         for entry in targets.values():
             for verdict in entry["layers"].values():

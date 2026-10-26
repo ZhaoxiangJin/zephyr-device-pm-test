@@ -9,7 +9,6 @@
     "frdm_mcxn947/mcxn947/cpu0": {
       "job": "2314045",
       "station": "1166",
-      "note": "built against the backup/lpadc-pm-fixes-rebased27-1789476385 worktree; dpd was reflashed and reset after a power cycle because Deep Power Down drops the station's debug port",
       "layers": {
         "baseline": "pass",
         "device": "pass",

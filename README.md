@@ -10,6 +10,7 @@ transition behaves. A failing layer is a finding, not a broken harness.
 | Case | IP | Driver under test |
 | --- | --- | --- |
 | [tests/ctimer](tests/ctimer) | CTIMER | `drivers/counter/counter_mcux_ctimer.c` |
+| [tests/freqme](tests/freqme) | FREQME | `drivers/clock_monitor/clock_monitor_nxp_freqme.c` |
 | [tests/ftm](tests/ftm) | FTM | `drivers/pwm/pwm_mcux_ftm.c` |
 | [tests/lpadc](tests/lpadc) | LPADC | `drivers/adc/adc_mcux_lpadc.c` |
 | [tests/lpcmp](tests/lpcmp) | LPCMP | `drivers/comparator/comparator_nxp_lpcmp.c` |
@@ -78,7 +79,7 @@ snippets/pm-*/       the layer definitions - the only place a layer is configure
 lib/pm_test/         forced low-power transition, console revival, layer assertions
 include/pm_test/
 docs/                see below
-results/             what has actually run, generated from twister output
+results/             one latest result per driver: <case>.json
 scripts/             collect_results.py
 ```
 
@@ -90,8 +91,8 @@ scripts/             collect_results.py
 | [docs/findings.md](docs/findings.md) | every defect found, with status — one read for "what is still open" |
 | [docs/boards.md](docs/boards.md) | supported board targets, what is out of scope, the Windows outdir trap |
 | [docs/authoring-a-case.md](docs/authoring-a-case.md) | how to add a driver case |
-| [docs/results.md](docs/results.md) | the run-record schema and how to produce one |
-| [docs/zephyr-pm-notes.md](docs/zephyr-pm-notes.md) | facts about Zephyr's PM subsystem that cost us a layer each to learn |
+| [docs/results.md](docs/results.md) | the result-record schema and how to produce one |
+| [docs/zephyr-pm-notes.md](docs/zephyr-pm-notes.md) | Zephyr PM configuration requirements |
 
 ## Why the results are in the repository
 
@@ -99,4 +100,4 @@ The [Device PM report](https://zhaoxiangjin.github.io/zephyr-data/reports/device
 PM *enablement* by statically analysing the Zephyr tree, but no amount of source analysis can say
 whether a transition was ever exercised. That evidence only exists here, so it is recorded in a form
 a tool can read: `case.yaml` ties a case to the compatibles it covers, `testcase.yaml` declares the
-board targets and the layers, and `results/*.json` records the runs.
+board targets and the layers, and `results/<case>.json` records each driver's latest result.

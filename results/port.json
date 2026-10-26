@@ -1,0 +1,23 @@
+{
+  "run": "20260916-port-vref-dapeng-pd-guard",
+  "date": "2026-09-16",
+  "case": "port",
+  "where": "dapeng",
+  "targets": {
+    "frdm_mcxn947/mcxn947/cpu0": {
+      "job": "2309455",
+      "station": "1166@main",
+      "layers": {
+        "runtime": "pass",
+        "system": "pass"
+      }
+    }
+  },
+  "findings": [
+    {
+      "id": "pd-soc-state-change-null-deref",
+      "summary": "Fix confirmed on hardware.",
+      "fix_verified": "yes"
+    }
+  ]
+}

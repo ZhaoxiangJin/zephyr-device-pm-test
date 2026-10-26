@@ -1,8 +1,6 @@
 # Notes on Zephyr's PM subsystem
 
-Facts about Zephyr, not about this repository. They are here because each one produced a layer that
-compiled cleanly and tested nothing, and because the next person to write a device-PM test will hit
-them in the same order.
+Configuration requirements for testing Zephyr device PM.
 
 Each is asserted at build time by `include/pm_test/layer.h`. If an assertion fired and sent you
 here, the paragraph below it is the reasoning.
@@ -37,11 +35,8 @@ A second trap in the same symbol: it is `default y if !PM_DEVICE_RUNTIME` inside
 with no dependency on `PM`. So the plain `device` layer — `CONFIG_PM_DEVICE=y` and nothing else —
 also has it set, even though there is no system PM and therefore no sweep at all.
 
-Before layers were named by their own Kconfig symbol, this was a live source of bugs: any `#if` that
-selected between the manual step and the sweep step had to test `CONFIG_PM` as well, or the manual
-step compiled out of the very layer it belonged to and the build failed on an unused helper. With
-`CONFIG_PM_TEST_LAYER_*` the question does not arise — which is the argument for naming a layer
-rather than deriving it.
+Use `CONFIG_PM_TEST_LAYER_*` to select manual versus system-managed test steps.
+`CONFIG_PM_DEVICE_SYSTEM_MANAGED` alone does not distinguish them.
 
 ## A power domain hands out `TURN_OFF`/`TURN_ON` only when it is itself swept
 

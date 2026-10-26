@@ -39,20 +39,19 @@ so does the commit message that fixes one.
 | `mrt-isr-clears-inuse` | mrt | the ISR cleared `STAT[INTFLAG]` with a read-modify-write, and `STAT[INUSE]` is also write-1-to-clear, so it cleared an `INUSE` that read as 1 | `drivers/counter/counter_nxp_mrt.c` | fixed in `enable-mrt-device-pm`, not observable: the driver never uses `INUSE` |
 | `mrt-bring-up-errors-dropped` | mrt | `clock_control_on()` in `init_common()`, `init_common()` in the turn-on action and `clock_control_get_rate()` in `get_freq()` all had their errors discarded | `drivers/counter/counter_nxp_mrt.c` | fixed in `enable-mrt-device-pm`, not exercised on hardware |
 | `mrt-channel-suspended-while-counting` | mrt | a channel's `SUSPEND` releases its policy lock and touches no register, because the clock belongs to the module; if a sibling still holds the module, a channel released while running keeps counting and delivering callbacks while the core records it `SUSPENDED` and nothing protects it. The `device` layer shows a suspended channel at `STAT[RUN]=1` | `drivers/counter/counter_nxp_mrt.c` | open, fix direction not decided |
-| `pd-soc-state-change-null-deref` | port, vref, ctimer | `pd_pm_action()` dereferences `pm_state_next_get()`, which is a stub returning `NULL` when `CONFIG_PM=n`; any device-PM build without system PM faults during device init, before the console exists. Reproduced again on `frdm_mcxn947` at zephyr `1ee3b93134be`, where the dereference at `power_domain_soc_state_change.c:63` is unguarded and `pm_device_runtime_auto_enable()` on the SoC's own `core-domain` node reaches it: it is why the ctimer case's `runtime` layer is recorded `blocked` | `drivers/power_domain/power_domain_soc_state_change.c` | open in this tree (the guard is not present at `1ee3b93134be`) |
+| `pd-soc-state-change-null-deref` | port, vref, ctimer | `pd_pm_action()` dereferences a NULL `pm_state_next_get()` result when `CONFIG_PM=n`, faulting during device init and blocking the runtime layer | `drivers/power_domain/power_domain_soc_state_change.c` | open at Zephyr `1ee3b93134be` |
 | `pd-soc-state-change-no-turn-on-under-runtime-pm` | port, vref | a child of such a domain never receives `TURN_ON` under runtime device PM: the domain is runtime-suspended before the child initialises, and it forwards `TURN_ON` only on the system state changes it lists | `drivers/power_domain/power_domain_soc_state_change.c` | open |
 | `vref-unconfigured-under-runtime-pm` | vref | consequence of the row above: the vref block never receives its devicetree configuration, because the `TURN_ON` that carries it never runs. `CSR` reads `0x00010800` — the mode bits from `regulator_common_init()` are there, `ICOMPEN`/`CHOPEN`/`REGEN` are not | `drivers/regulator/regulator_nxp_vref.c` or the domain driver | open |
-| `mcxe247-idle-stack-too-small-for-pm-sweep` | ftm, frdm_mcxe247 | the `sysmanaged` layer faults with a stack overflow on the idle thread the moment the forced Deep Sleep returns: BUS FAULT, BFAR `0x1ffe1d60`, NXP MPU port 2, at 2.084 s. `CONFIG_IDLE_STACK_SIZE` is 320 bytes on this board and the whole `pm_suspend_devices()`/`pm_resume_devices()` sweep runs on it, with `CONFIG_LOG_MODE_IMMEDIATE` formatting on the same stack. Rebuilt with 1024 the layer passes in 2.030 s. Not the FTM driver: the same build with the zero-period release path removed faults identically, same address, same thread, same instant. Nothing in this case asks for a small idle stack -- 320 is what the board and its SoC defaults produce, so any device-PM sweep on this board is exposed. The ftm case raises it to 1024 in `tests/ftm/boards/frdm_mcxe247.conf` so its `sysmanaged` layer reaches its own claims instead of dying on an unrelated stack; that is a workaround in one case and not a fix | board or SoC defconfig, not a peripheral driver | open, root cause identified |
+| `mcxe247-idle-stack-too-small-for-pm-sweep` | ftm, frdm_mcxe247 | the 320-byte idle stack overflows during the system-managed PM sweep with immediate logging; the FTM case requires 1024 bytes in `tests/ftm/boards/frdm_mcxe247.conf` | board or SoC defconfig, not a peripheral driver | open; case-local workaround |
 | `mcxa-suspend-to-idle-never-wakes` | all, MCXA only | on MCXA a `k_msleep()` that lands in `PM_STATE_SUSPEND_TO_IDLE` never returns; reproduced with a 20-line application that touches no peripheral under test. It is why the `sysmanaged` and `dpd` layers are recorded `blocked`, not `fail`, on every MCXA board | SoC PM glue, not a peripheral driver | open |
-| `mcxa153-runtime-default-enable-hangs-at-boot` | ctimer, a153 only | on frdm_mcxa153 the `runtime` and `system` layers stop after the layer banner, before the suite setup prints its first line, with every case blocked. Those are the only two layers that boot every device `SUSPENDED` through `CONFIG_PM_DEVICE_RUNTIME_DEFAULT_ENABLE`; `device`, which does not, passes on the same board. Dapeng job 2325402, not reproduced locally | unattributed — no a153 on hand | open |
+| `mcxa153-runtime-default-enable-hangs-at-boot` | ctimer, a153 only | the `runtime` and `system` layers hang before suite setup with `CONFIG_PM_DEVICE_RUNTIME_DEFAULT_ENABLE`; the `device` layer passes | unattributed | open |
 
 ## What `fixed` means, and which tree it is fixed in
 
-`fixed` is a statement about a commit, not about whatever tree happens to be checked out. The five
-`lpadc-*` rows are fixed on the branch the record
-`results/20260921-lpadc-dapeng-pm-fixes.json` names in its `note`, where all six layers pass on
-`frdm_mcxn947/mcxn947/cpu0`. On a checkout without those commits the same six images give a
-different answer: `runtime` and `system` fail and `sysmanaged` and `dpd` never print a summary.
+`fixed` is a statement about a tested revision, not the current checkout. The five
+`lpadc-*` rows are verified by
+[lpadc.json](../results/lpadc.json).
+Its `zephyr` field identifies the revision; all six layers pass on `frdm_mcxn947/mcxn947/cpu0`.
 
 So a failing layer is not by itself evidence of a new defect. Read the record's `zephyr` field
 first: a verdict is only about the commit recorded beside it.
@@ -61,8 +60,7 @@ first: a verdict is only about the commit recorded beside it.
 
 `pd-soc-state-change-null-deref` and `pd-soc-state-change-no-turn-on-under-runtime-pm` live in the
 shared power-domain plumbing, and reach every board whose devicetree has a
-`power-domain-soc-state-change` node. They surfaced here because this harness is the first thing to
-build those drivers with device PM but without system PM — which is exactly the `device` layer.
+`power-domain-soc-state-change` node.
 
 `mcxa-suspend-to-idle-never-wakes` is an environment defect. It blocks two layers on a whole family
 and says nothing about the peripheral, which is why the record distinguishes `blocked` from `fail`.
@@ -77,4 +75,4 @@ and disable operations; configuration accesses use temporary references.
 The shared-domain findings above describe the historical failing revisions. At Zephyr
 `a915b2f12675`, `power_domain_soc_state_change.c` already checks for a NULL next state and
 forwards `TURN_ON` on runtime resume. Those fixes are prerequisites of the current VREF
-runtime case, not new changes made by the VREF series. The old run records remain unchanged.
+runtime case, not new changes made by the VREF series. Each result applies only to its tested source.

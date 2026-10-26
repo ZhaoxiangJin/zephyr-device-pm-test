@@ -54,10 +54,7 @@ because their reference manuals have not been read for this IP.
 
 ## Expected per layer
 
-Measured on Dapeng job 2331081 at zephyr `7bc85c05b0f` and harness `81c45f0` —
-[../../results/20261022-mrt-dapeng-case-fixes.json](../../results/20261022-mrt-dapeng-case-fixes.json).
-`81c45f0` is on `mrt-case`; its `tests/mrt` is identical to `e2ec48e` on `main`. 12 of 12
-built, 12 of 12 ran, no assertion failed and none skipped.
+Results: [mrt.json](../../results/mrt.json).
 
 | Layer | n947 | n236 |
 | --- | --- | --- |
@@ -71,10 +68,5 @@ built, 12 of 12 ran, no assertion failed and none skipped.
 In `dpd` a channel enters Deep Power Down with `INTVAL=1500000 RUN=1` and comes back with
 `INTVAL=0 RUN=0` and `CTRL[INTEN]` set, then delivers callbacks once started.
 
-The first run, job 2330465
-([../../results/20261022-mrt-dapeng.json](../../results/20261022-mrt-dapeng.json)), failed
-`device` and `system` on both boards. Both were case defects, fixed in `f5edf94` and
-`e2ec48e`; the driver did not change between the two jobs.
-
-One board per SoC devicetree ran. `mcx_n9xx_evk`, `mcx_n5xx_evk` and the `qspi` variants
-include the same two dtsi files and were not in either job.
+Coverage is limited to n947 and n236. `mcx_n9xx_evk`, `mcx_n5xx_evk` and the `qspi`
+variants are not covered by this result.

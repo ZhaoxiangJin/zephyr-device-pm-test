@@ -1,0 +1,28 @@
+{
+ "run": "20261013-ftm-local",
+ "date": "2026-10-13",
+ "case": "ftm",
+ "where": "local",
+ "zephyr": "v4.5.0-rc1-352-g8f721722eed9",
+ "harness": "0e63141",
+ "targets": {
+  "frdm_ke17z": {
+   "layers": {
+    "baseline": "pass",
+    "device": "pass",
+    "runtime": "pass",
+    "system": "pass",
+    "sysmanaged": "pass"
+   }
+  },
+  "frdm_mcxe247": {
+   "layers": {
+    "baseline": "pass",
+    "device": "pass",
+    "runtime": "pass",
+    "system": "pass",
+    "sysmanaged": "pass"
+   }
+  }
+ }
+}

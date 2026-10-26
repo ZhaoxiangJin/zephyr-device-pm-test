@@ -3,11 +3,6 @@
 Driver under test: `drivers/counter/counter_mcux_ctimer.c`, plus the CTIMER clock gate
 in `drivers/clock_control/clock_control_mcux_syscon.c` which the PM callbacks rely on.
 
-Before the change this driver registered a `pm_device` whose `SUSPEND`, `RESUME` and
-`TURN_OFF` actions were all empty: PM reported state transitions that had no effect on
-the hardware at all. All six layers here are new, so every verdict below is about the
-reworked driver.
-
 ## What is observable
 
 Two things, because neither alone is enough.
@@ -61,10 +56,8 @@ those states.
 
 ## Expected per layer
 
-Measured on Dapeng job 2325402, all 11 board targets, at zephyr `33915515a6e` and
-harness `81f5137` — [../../results/20261011-ctimer-dapeng.json](../../results/20261011-ctimer-dapeng.json).
-66 of 66 configurations built. Six board models had no online station in the run token
-pool and are recorded `built`, which is infrastructure and not a verdict.
+Results: [ctimer.json](../../results/ctimer.json).
+Six additional board targets are build-only results, not hardware verdicts.
 
 | Layer | n236 | n947 | a577 | a266 | a153 |
 | --- | --- | --- | --- | --- | --- |
@@ -75,27 +68,4 @@ pool and are recorded `built`, which is infrastructure and not a verdict.
 | `sysmanaged` | PASS | PASS | fail | fail | fail |
 | `dpd` | PASS | PASS | fail | fail | fail |
 
-No assertion failed anywhere in this job. Every row that is not a PASS is a hang or a
-station event.
-
-n236 carries all six layers. `system` passes on every board that reached it, and
-`device` and `dpd` pass on every board that reached them.
-
-The remaining rows, none of which is the driver:
-
-`sysmanaged` and `dpd` on the three MCXA boards hang at the forced transition, the log
-ending on `forcing one Deep Sleep transition` or `forcing one Deep Power Down
-transition`. That is `mcxa-suspend-to-idle-never-wakes`, an environment defect this
-case inherits.
-
-`runtime` and `system` on a153 stop after the layer banner, before the suite setup
-prints its first line, with every case blocked. Those two layers are the only ones that
-boot every device `SUSPENDED` through `PM_DEVICE_RUNTIME_DEFAULT_ENABLE`, and `device`,
-which does not, passes on the same board. Not reproduced locally — a153 is not on hand.
-
-`device` on n947 is a station problem, not a board one: the handler log ends on
-`PROJECT EXECUTION SUCCESSFUL` and twister then died with `UnicodeEncodeError` printing
-its summary tree to a cp1252 console. `baseline` on a577 and `device` on a266 are
-download errors — the image never reached the board. A station leaves the previous
-task's `handler.log` at the same path, so for a download error that file reports
-somebody else's run and must not be read as a verdict.
+Known failure conditions are listed in [findings.md](../../docs/findings.md).

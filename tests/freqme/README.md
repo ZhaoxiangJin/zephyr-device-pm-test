@@ -93,11 +93,7 @@ than adding a post-wakeup source-clock enable to the test.
 
 ## Status
 
-The latest recorded farm run is
-[Dapeng job 2334878](https://dapeng.nxp.com/app/request/2334878/testcases/).
-Its task CSV, exported at `2026-10-26T20:55:24.945158+08:00` without HTTP caching,
-reports **36/36 builds Pass and 36/36 latest run verdicts Pass**. The machine-readable
-record is [20261026-freqme-dapeng.json](../../results/20261026-freqme-dapeng.json).
+Results: [freqme.json](../../results/freqme.json).
 
 | Board | baseline | device | runtime | system | sysmanaged | dpd |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -108,27 +104,5 @@ record is [20261026-freqme-dapeng.json](../../results/20261026-freqme-dapeng.jso
 | FRDM-MCXN236 | pass | pass | pass | pass | pass | pass |
 | FRDM-MCXN947 (CPU0) | pass | pass | pass | pass | pass | pass |
 
-The revisions that actually ran were Zephyr
-`000b7b83da1d848b366d405eb6c118a349fdf943` and harness
-`6b3da761c89dd34a7441effcc55990a956987d0d`; these are the pins in the record,
-not the later DCO-rewritten development heads.
-
-This is a latest-verdict result, not an all-first-attempt pass. These tasks needed
-more than one run; `run_times` includes the first run, not just retries. All now
-report Pass.
-
-| Board / layer | Task | First verdict | run_times |
-| --- | --- | --- | --- |
-| MCXA577 / baseline | [910632401](https://dapeng.nxp.com/app/task/910632401/) | No Output | 7 |
-| MCXA577 / device | [910632407](https://dapeng.nxp.com/app/task/910632407/) | No Output | 3 |
-| MCXA577 / system | [910632419](https://dapeng.nxp.com/app/task/910632419/) | No Output | 4 |
-| MCXA577 / sysmanaged | [910632425](https://dapeng.nxp.com/app/task/910632425/) | No Output | 3 |
-| MCXN236 / sysmanaged | [910632423](https://dapeng.nxp.com/app/task/910632423/) | Download Error | 2 |
-| MCXN236 / dpd | [910632429](https://dapeng.nxp.com/app/task/910632429/) | Fail | 2 |
-| MCXN947 / baseline | [910632403](https://dapeng.nxp.com/app/task/910632403/) | No Output | 2 |
-| MCXN947 / runtime | [910632415](https://dapeng.nxp.com/app/task/910632415/) | Download Error | 3 |
-
-Rerun success does not establish why the earlier attempts failed. MCXA344 was
-intentionally excluded, and the other declared targets outside the six boards
-above were not covered by this job. Earlier local records in
-[../../results/](../../results/) remain unchanged as historical evidence.
+Coverage is limited to the six boards above; MCXA344 and the other declared
+targets are not covered by this result. Tested revisions are recorded in the JSON.

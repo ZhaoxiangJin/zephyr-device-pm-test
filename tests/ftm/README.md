@@ -122,10 +122,8 @@ capable, so `boards/frdm_mcxe247.overlay` enables it, marks it and chooses it.
 
 ## Expected per layer
 
-Verified on hardware on both targets: `frdm_ke17z` (FTM2, channel 0) and
-`frdm_mcxe247` (FTM0, channel 0). All five layers pass on both, 12 of 12 test cases
-per target --
-[../../results/20261013-ftm-local.json](../../results/20261013-ftm-local.json).
+Results for `frdm_ke17z` (FTM2, channel 0) and `frdm_mcxe247` (FTM0, channel 0):
+[ftm.json](../../results/ftm.json).
 
 | Layer | Verdict |
 | --- | --- |

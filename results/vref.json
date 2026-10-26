@@ -1,0 +1,23 @@
+{
+  "run": "20260916-vref-dapeng-pd-guard",
+  "date": "2026-09-16",
+  "case": "vref",
+  "where": "dapeng",
+  "targets": {
+    "frdm_mcxn947/mcxn947/cpu0": {
+      "job": "2309455",
+      "station": "1166@main",
+      "layers": {
+        "runtime": "fail",
+        "system": "fail"
+      }
+    }
+  },
+  "findings": [
+    {
+      "id": "vref-unconfigured-under-runtime-pm",
+      "summary": "Still open: with runtime device PM the vref block never receives its devicetree configuration.",
+      "fix_verified": "no"
+    }
+  ]
+}

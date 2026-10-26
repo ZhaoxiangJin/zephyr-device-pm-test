@@ -121,9 +121,8 @@ Hardware execution, including DPD, is pending. See the driver's
 runtime-reference tests. RAM-register tests exercise driver behavior, not
 bandgap settling or board power retention.
 
-Local evidence for this revision:
+Local results for this revision:
 
-- The original driver failed all six initial QEMU regression checks.
 - The corrected driver passes 12 checks, with no skips, including the MCXA
   supply/voltage variant and the factory-trim-only variant.
 - MCXN947 baseline and MCXA577 runtime images build with ELF and HEX outputs.

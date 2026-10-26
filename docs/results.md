@@ -1,15 +1,15 @@
-# Run records
+# Result records
 
-A `testcase.yaml` says which layers *exist*. `results/*.json` says which ones have actually **run**,
-on which board, and how. The Device PM report in
+A `testcase.yaml` says which layers *exist*. Each `results/<case>.json` contains that driver's
+latest collected result: which layers ran, on which boards, and how. The Device PM report in
 [zephyr-data](https://github.com/ZhaoxiangJin/zephyr-data) reads both, so a board/IP pair can be
 reported as "there is a test" separately from "the test passes on silicon" — a distinction no amount
 of static analysis of the Zephyr tree can make.
 
-**These files hold machine facts only.** No analysis, no argument, no defect narrative. A defect
-belongs in [findings.md](findings.md); the reasoning behind it belongs in the case's README. The
-`note` fields are for run provenance a later reader cannot reconstruct — which station, why a target
-was unreachable — and nothing else.
+**These files hold results only:** per-target layer verdicts, tested revisions, result identifiers,
+and optional final test counts or image hashes. Do not record build/debug steps, intermediate
+candidates, retry histories, session cleanup, or development progress. A defect belongs in
+[findings.md](findings.md); test requirements and coverage limits belong in the case's README.
 
 ## Producing one
 
@@ -42,9 +42,15 @@ the board's bytes reads exactly like a board that never booted, and the two must
 register as the same thing. A capture that starts and stops without a summary is a `fail`: the layer
 did not pass, and whether it asserted or hung belongs in [findings.md](findings.md).
 
-One file per run, named `<YYYYMMDD>-<case>-<where>.json`. Never edit an old file to record a new
-run: add another one. A later run supersedes an earlier one per layer, so history stays readable and
-a regression is a diff.
+Keep exactly one file per driver case, named `<case>.json`, such as `freqme.json`.
+Collecting a newer result replaces that file, including its revisions and coverage; do not merge
+targets or layers from older runs into it. A partial run therefore reports only its own coverage.
+The `date`, `run` and source fields identify the retained result. `--tag` changes the run
+identifier, not the filename.
+
+An older date is rejected unless `--force` is explicitly supplied. For the same date, the last
+collected result replaces the previous one. `--dry-run` previews the replacement without writing.
+Previous results belong in Git history, not in additional files under `results/`.
 
 ## Schema
 
@@ -60,7 +66,6 @@ a regression is a diff.
     "frdm_mcxn947/mcxn947/cpu0": {
       "job": "2309422",
       "station": "1166@main",
-      "note": "provenance only",
       "layers": {"baseline": "pass", "device": "pass", "runtime": "pass",
                  "system": "pass", "sysmanaged": "pass", "dpd": "pass"}
     }
@@ -78,6 +83,9 @@ a regression is a diff.
   not survive its own branch. A `-dirty` suffix on `harness` means the collector found uncommitted
   changes, so the named commit is not what ran — the record is still useful as a local note, but it
   cannot be cited. Commit first, then regenerate.
+- `job` / `station` identify the source of a result. Optional `passed_tests`, `elf_sha256` and
+  `serial_logs` mappings contain final per-layer counts or evidence references, not execution steps.
+  The collector emits the core schema shown above.
 
 ## Verdicts
 
@@ -89,12 +97,19 @@ a regression is a diff.
 | `blocked` | never reached the board — no station, bridge would not come up — or reached it and was stopped there by a defect outside the driver under test, such as `mcxa-suspend-to-idle-never-wakes` or `pd-soc-state-change-null-deref`. Says nothing about the driver |
 | `built` | the image compiles; it was not run. The weakest useful evidence |
 
-Ranking when several runs cover the same layer: `pass`/`fail`/`skipped` all beat `built`, which beats
-`blocked`; ties go to the later `date`. `pass`, `fail` and `skipped` share a rank because each is a
-statement about silicon, so a later `skipped` supersedes an earlier `pass` instead of being hidden by
-it — if a case has decided a layer is unobservable, an old green run is the stale fact, not the new
-skip. A build sweep never overwrites a hardware result, and a fresh hardware run always wins. The
-consumer implements exactly this, and so does the collector.
+When duplicate suites within one Twister report cover the same target and layer, the collector
+ranks `pass`/`fail` above `skipped`, then `built`, then `blocked`; equal ranks take the later suite.
+This only folds a single report. Replacing a driver's result does not rank or merge older evidence:
+even a build-only run replaces the previous snapshot when it is the latest collected result.
 
 A case that exists but has never run is reported as exactly that, which is the honest state — do not
-leave a passing run unrecorded, and do not edit an old file to describe a new run.
+leave a passing run unrecorded. Update that case's single result file for a new run. Documentation
+may show a final result table and link its JSON; omit job-progress summaries and rerun narratives.
+
+## Collector checks
+
+Run the standard-library regression tests from the repository root:
+
+```sh
+python -m unittest discover -s scripts -p "test_*.py"
+```

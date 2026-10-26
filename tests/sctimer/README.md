@@ -106,4 +106,4 @@ Nothing in this case looks at the pad, so no external wiring is needed.
 
 ## Expected per layer
 
-Not yet run on hardware. The table goes here once there is a Dapeng job to cite.
+Not yet run on hardware.
