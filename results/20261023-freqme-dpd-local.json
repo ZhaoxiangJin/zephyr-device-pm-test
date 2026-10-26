@@ -1,0 +1,261 @@
+{
+  "run": "20261023-freqme-dpd-local",
+  "date": "2026-10-23",
+  "case": "drivers.pm.freqme.dpd",
+  "where": "local",
+  "board": "frdm_mcxa153",
+  "verdict": "PASS",
+  "verdict_scope": "FRDM-MCXA153 native DPD only; not a seven-board farm verdict",
+  "completion": "local-debug-complete",
+  "zephyr": "e5eeb7d139e3585ad0578e8a0914658676cc5a63 plus uncommitted timer/DTS candidate",
+  "harness": "4535a139e6a3ad81a8b3ffb19e1b43b6d41e7f0b plus the preceding test corrections",
+  "hal_nxp": "a8b437ef366ff9a6f9bee3377dc189c4d2623f5b",
+  "freqme_driver_changed": false,
+  "source_probes_removed": true,
+  "board_image_after_cleanup": {
+    "kind": "final-uninstrumented-firmware",
+    "image": "C:\\builds\\freqme-dpd-debug\\final-dpd-image\\zephyr.hex",
+    "flash_result": "passed",
+    "serial_log": "C:\\builds\\freqme-dpd-debug\\uart-domain-dpd-repeat3-serial.log",
+    "runtime_result": "PASS: 2/2 tests, zero failures/skips; third consecutive native pass"
+  },
+  "new_commits_or_pushes": false,
+  "new_dapeng_request": false,
+  "farm": {
+    "url": "https://dapeng.nxp.com/app/request/2332381/testcases/",
+    "zephyr": "0fbcfc9ed0e985f6a1a7b7488fb6133fba448993",
+    "harness": "6b3da761c89dd34a7441effcc55990a956987d0d",
+    "dpd_build_passes": 7,
+    "runtime_failed_tasks": {
+      "frdm_mcxa153": 909060828,
+      "frdm_mcxa156": 909060830,
+      "frdm_mcxa346": 909060832,
+      "frdm_mcxa577": 909060829
+    },
+    "download_error_tasks": {
+      "frdm_mcxa344": 909060826,
+      "frdm_mcxn236": 909060827,
+      "frdm_mcxn947": 909060831
+    },
+    "runtime_log_observation": "The control test passes; output stops at forcing one Deep Power Down transition. MCXA346/577 also show repeated boot/RunID output, not successful resume.",
+    "download_error_handler_logs_used": false,
+    "other_reported_verdicts": {
+      "baseline": "7 passed",
+      "device": "7 passed",
+      "runtime": "7 passed",
+      "system": "7 passed",
+      "sysmanaged": "4 failed, 3 passed"
+    },
+    "other_verdict_limitation": "Platform-reported counts, not newly established local passes."
+  },
+  "hardware": {
+    "probe": "J-Link MCU-Link",
+    "serial_number": "1067963845",
+    "swd_khz": 1000,
+    "serial_port": "COM10",
+    "baud": 115200,
+    "toolchain": "Arm GNU 13.3.Rel1",
+    "runner": "J-Link Commander 9.46",
+    "capture": "Serial opened before flashing; native runs have no live GDB server."
+  },
+  "build_environment": {
+    "ZEPHYR_BASE": "C:\\repos\\workspace\\zephyrproject\\zephyr-device-pm-freqme",
+    "ZEPHYR_TOOLCHAIN_VARIANT": "gnuarmemb",
+    "GNUARMEMB_TOOLCHAIN_PATH": "C:\\Applications\\ARMGCC\\13.3-rel1"
+  },
+  "local_build_count": 6,
+  "local_build_rounds": [3, 3],
+  "builds": [
+    {
+      "number": 1,
+      "kind": "incomplete-candidate",
+      "command": "west build -b frdm_mcxa153 -d C:\\builds\\freqme-dpd-debug\\handoff-dpd -S pm-dpd C:\\repos\\workspace\\zephyrproject\\zephyr-device-pm-test\\tests\\freqme -o=-j2",
+      "result": "passed",
+      "changes": "MCXA153 OS Timer handoff state list only",
+      "image": "C:\\builds\\freqme-dpd-debug\\handoff-only\\zephyr.elf",
+      "elf_sha256": "5fbb2531186607633d216e73e49fccff8aa9e21f3769a2b142b47a8b7bf80dc6",
+      "runtime": "FAIL: companion and LPTMR alarm remain unarmed before DPD",
+      "serial_log": "C:\\builds\\freqme-dpd-debug\\handoff-dpd-serial.log",
+      "entry_log": "C:\\builds\\freqme-dpd-debug\\handoff-entry-gdb.log"
+    },
+    {
+      "number": 2,
+      "kind": "uninstrumented-candidate",
+      "command": "west build -d C:\\builds\\freqme-dpd-debug\\handoff-dpd -o=-j2",
+      "result": "passed",
+      "changes": "MCXA handoff state lists, strong OS Timer idle-entry hook and duplicate-arm guard",
+      "image": "C:\\builds\\freqme-dpd-debug\\idle-hook-image\\zephyr.elf",
+      "elf_sha256": "bb3307deace618d08e20936e1cbcf5c95f0edaa87a0c12ef06cb7a9fa40eaf08",
+      "runtime": "FAIL: repeated cold boots after forcing DPD; no post-transition test completion",
+      "serial_log": "C:\\builds\\freqme-dpd-debug\\idle-hook-dpd-serial.log",
+      "entry_log": "C:\\builds\\freqme-dpd-debug\\resume-entry-gdb.log"
+    },
+    {
+      "number": 3,
+      "kind": "temporary-diagnostic-probe",
+      "command": "west build -d C:\\builds\\freqme-dpd-debug\\handoff-dpd -o=-j2",
+      "result": "passed",
+      "changes": "Retained RAM reset/marker trace in pm_s2ram_mark_check_and_clear, printed at suite setup",
+      "image": "C:\\builds\\freqme-dpd-debug\\diagnostic-image\\zephyr.elf",
+      "elf_sha256": "36372b9cb02e4eb887844b895787683c3b9d26d1f03a509768bfe7a7372e7a27",
+      "runtime": "FAIL: native wakeup marker acceptance followed by CPU lockup reset",
+      "serial_log": "C:\\builds\\freqme-dpd-debug\\reset-marker-dpd-serial.log",
+      "source_probe_status": "Removed after evidence capture; this image is diagnostic, not a final validated firmware."
+    },
+    {
+      "number": 4,
+      "kind": "temporary-resume-stage-probe",
+      "command": "west build -d C:\\builds\\freqme-dpd-debug\\handoff-dpd -o=-j2",
+      "result": "passed",
+      "runtime": "FAIL: native cold boots persist; retained stage reaches 6, after SoC SCS restore",
+      "serial_log": "C:\\builds\\freqme-dpd-debug\\resume-fault-probe-serial.log",
+      "entry_log": "C:\\builds\\freqme-dpd-debug\\resume-fault-stage-gdb.log",
+      "image_preserved": false,
+      "source_probe_status": "Replaced by full-vector fault probe, then fully removed"
+    },
+    {
+      "number": 5,
+      "kind": "temporary-full-vector-fault-probe",
+      "command": "west build -d C:\\builds\\freqme-dpd-debug\\handoff-dpd -o=-j2",
+      "result": "passed",
+      "runtime": "FAIL: first native post-resume BusFault captured in retained RAM before lockup",
+      "image": "C:\\builds\\freqme-dpd-debug\\full-resume-fault-image\\zephyr.elf",
+      "elf_sha256": "786d2170d10cccf7ca23945b27259aa69433b39440cb1f12db60936b12b2dee1",
+      "serial_log": "C:\\builds\\freqme-dpd-debug\\full-resume-fault-probe-serial.log",
+      "entry_log": "C:\\builds\\freqme-dpd-debug\\native-resume-fault-gdb.log",
+      "source_probe_status": "Removed before final build"
+    },
+    {
+      "number": 6,
+      "kind": "final-uninstrumented-firmware",
+      "command": "west build -d C:\\builds\\freqme-dpd-debug\\handoff-dpd -o=-j2",
+      "result": "passed",
+      "changes": "Timer idle handoff, five MCXA handoff state lists, CORE-domain membership of all 20 MCXA LPUART nodes",
+      "runtime": "PASS: three native runs, each 2/2 tests, zero failures/skips",
+      "image": "C:\\builds\\freqme-dpd-debug\\final-dpd-image\\zephyr.elf",
+      "elf_sha256": "5a8aa87bda0e94a0fc0dd8edb503b3fd7c5a07ac86617383069c7464634e1303",
+      "serial_log": "C:\\builds\\freqme-dpd-debug\\uart-domain-dpd-serial.log",
+      "source_probe_status": "No source probes, debugger intervention, FREQME driver edits or SoC restore edits"
+    }
+  ],
+  "confirmed_findings": [
+    {
+      "finding": "MCXA OS Timer nodes lack handoff-power-states",
+      "evidence": "Without a matching state the generic path never hands off. The original MCXA153 ELF garbage-collects companion entry/armed symbols."
+    },
+    {
+      "finding": "OS Timer lacks the standard idle-entry hook",
+      "evidence": "PM core passes nonzero idle_ticks through the weak sys_clock_idle_enter fallback. OS Timer's old handoff branch recognizes only idle && ticks == 0. MCXA/MCXN do not issue the legacy zero-tick SoC poke used by RW."
+    },
+    {
+      "finding": "The candidate schedules the wake alarm",
+      "evidence": {
+        "breakpoint": "mcxa_enter_deep_power_down, before power gating",
+        "lpm_companion_armed": true,
+        "alarm_active": true,
+        "counter_scheduled_lpm_ticks": 31993,
+        "marker": "0xdabbad00",
+        "SPC_SRAMRETLDO_CNTRL": "0x00000f01",
+        "saved_psp": "0x20001c80",
+        "saved_psplim": "0x20001af8"
+      }
+    },
+    {
+      "finding": "Native S2RAM wake/resume is attempted, then the CPU locks up",
+      "applies_to": "Intermediate candidate before UART power-domain fix, not the final firmware",
+      "evidence": {
+        "successful_marker_checks": "Increases from 1 through 5 during successive native cycles",
+        "reset_source_at_successful_marker_check": "0x00000001 (WAKEUP)",
+        "reset_source_at_following_cold_boot": "0x00008010 (LOCKUP | WARM)",
+        "sticky_reset_source": "0x00008011",
+        "retained_cookie": "0x46525150",
+        "retained_context_psp": "0x20001c80"
+      },
+      "limitation": "This initial trace alone did not establish the faulting instruction; the subsequent fault probe below does."
+    },
+    {
+      "finding": "Board-enabled LPUART2 lacks CORE-domain membership and faults in ordinary RESUME after DPD",
+      "evidence": {
+        "retained_capture_signature": "0xfa17fa17",
+        "stage": "6: SoC clock and SCS restore completed",
+        "CFSR": "0x00008200: PRECISERR | BFARVALID",
+        "HFSR": "0x40000000: FORCED",
+        "BFAR": "0x400a1010: LPUART2 BAUD register",
+        "saved_fault_psp": "0x20001ec0",
+        "stacked_pc": "0x00009d24",
+        "stacked_lr": "0x00009a23",
+        "fault_site": "LPUART_EnableInterrupts, fsl_lpuart.c:962",
+        "caller": "mcux_lpuart_pm_action RESUME, uart_mcux_lpuart.c:1634",
+        "frame_log": "C:\\builds\\freqme-dpd-debug\\native-fault-frame-gdb.log"
+      },
+      "mechanism": "The UART loses registers and gate clock in CORE-domain DPD but receives no TURN_ON because its DTS node has no domain association. Ordinary RESUME accesses the unclocked BAUD register. Associate each MCXA UART with core_domain so the existing TURN_ON configuration restores it before RESUME.",
+      "limitation": "Post-attach current PC/backtrace may be debugger-induced cold boot. The diagnosis uses the native retained fault record and preserved exception frame, not that current backtrace."
+    }
+  ],
+  "candidate_scope": {
+    "timer": "drivers/timer/mcux_os_timer.c",
+    "uart_domain_nodes": 20,
+    "dts": [
+      "dts/arm/nxp/mcx/mcxa/nxp_mcxa153.dtsi",
+      "dts/arm/nxp/mcx/mcxa/nxp_mcxa156.dtsi",
+      "dts/arm/nxp/mcx/mcxa/nxp_mcxa344.dtsi",
+      "dts/arm/nxp/mcx/mcxa/nxp_mcxaxx6_common.dtsi",
+      "dts/arm/nxp/mcx/mcxa/nxp_mcxa5x_common.dtsi"
+    ],
+    "handoff_states": ["deepsleep", "powerdown", "deeppowerdown"],
+    "hardware_validated_target": "frdm_mcxa153: three native DPD runs, each 2/2 PASS",
+    "not_validated": "Other MCXA families, MCXN DPD, sysmanaged Deep Sleep, and regression matrix",
+    "note": "No invented OS Timer reset index for MCXA5x; FREQME/UART C drivers and SoC restore code unchanged. Design approval is not inferred."
+  },
+  "rejected_or_inconclusive_probes": [
+    "Post-DPD GDB reconnect can reset/reinitialize the target. 0xdeadbeef/deadbeee is inaccessible-DAP filler, not a valid fault PC.",
+    "Hardware breakpoints do not survive DPD. The wake-path GDB timeout does not identify a fault location.",
+    "The first RAM-only stack-limit attempts did not reliably run from a fresh entry; they are not evidence of a fix.",
+    "A validated-entry RAM-only PSPLIM=0 probe with a refreshed LPTMR alarm still produced cold boots. It does not fix the lockup and cannot rule out all stack corruption.",
+    "The linked SystemInit disassembly has no SRAM ECC clearing loop; BYPASS_ECC_RAM_INIT is enabled for MCXA153."
+  ],
+  "intermediate_candidate_unreached_assertions": [
+    "Return transparently to the same DPD test instance",
+    "MIN restored from sentinel 0x1e67 to configured 0x1e66",
+    "INPUTMUX route REF=2, TAR=2 restored",
+    "WINDOW monitor rearmed in continuous/measuring mode",
+    "Post-transition frequency measurement passes"
+  ],
+  "final_validation": {
+    "native_runs": 3,
+    "pass_per_run": 2,
+    "fail_per_run": 0,
+    "skip_per_run": 0,
+    "transition_seconds_per_run": 2.034,
+    "sentinel_before_dpd": "0x00001e67",
+    "configured_min_after_dpd": "0x00001e66",
+    "route_ref_after_dpd": 2,
+    "route_tar_after_dpd": 2,
+    "measuring_after_dpd": true,
+    "continuous_after_dpd": true,
+    "post_transition_measurement": "PASS",
+    "final_boots_per_run": 1,
+    "debugger_attached_during_runs": false,
+    "serial_logs": [
+      "C:\\builds\\freqme-dpd-debug\\uart-domain-dpd-serial.log",
+      "C:\\builds\\freqme-dpd-debug\\uart-domain-dpd-repeat2-serial.log",
+      "C:\\builds\\freqme-dpd-debug\\uart-domain-dpd-repeat3-serial.log"
+    ]
+  },
+  "remaining_local_blocker": null,
+  "limitations": [
+    "Other boards, sysmanaged and the regression matrix have not been rerun with the final source.",
+    "Farm request 2332381 still contains the pre-fix source and retains its original verdicts.",
+    "No new commits, pushes or farm requests were made."
+  ],
+  "continuation": "User explicitly requested autonomous continuation. A second three-build round captured the UART fault and verified the final fix; no further local debug blocker remains.",
+  "record_checks": [
+    "git diff --check passed in the Zephyr, test and my_agent worktrees",
+    "git diff --exit-code passed for arch/arm/core/cortex_m/pm_s2ram.c and tests/freqme/src/main.c after probe removal",
+    "Result JSON parsed; preserved image SHA256 hashes and serial-log paths verified",
+    "Static coverage check passed for all five timer state lists and all 20 MCXA LPUART domain associations",
+    "Final native UART logs verify three complete 2/2 suites, MIN replay, route and monitor restoration",
+    "Bilingual documents have pair_revision 15, A6 awaiting-review and B3 draft"
+  ],
+  "evidence_directory": "C:\\builds\\freqme-dpd-debug"
+}
