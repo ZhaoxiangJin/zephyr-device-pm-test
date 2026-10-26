@@ -10,6 +10,7 @@ transition behaves. A failing layer is a finding, not a broken harness.
 | Case | IP | Driver under test |
 | --- | --- | --- |
 | [tests/ctimer](tests/ctimer) | CTIMER | `drivers/counter/counter_mcux_ctimer.c` |
+| [tests/freqme](tests/freqme) | FREQME | `drivers/clock_monitor/clock_monitor_nxp_freqme.c` |
 | [tests/ftm](tests/ftm) | FTM | `drivers/pwm/pwm_mcux_ftm.c` |
 | [tests/lpadc](tests/lpadc) | LPADC | `drivers/adc/adc_mcux_lpadc.c` |
 | [tests/lpcmp](tests/lpcmp) | LPCMP | `drivers/comparator/comparator_nxp_lpcmp.c` |
@@ -20,6 +21,13 @@ transition behaves. A failing layer is a finding, not a broken harness.
 | [tests/vref](tests/vref) | VREF | `drivers/regulator/regulator_nxp_vref.c` |
 
 What it has found so far: [docs/findings.md](docs/findings.md).
+
+FREQME's latest recorded run, [Dapeng job 2334878](https://dapeng.nxp.com/app/request/2334878/testcases/),
+has **36/36 builds Pass and 36/36 latest run verdicts Pass** across six boards and all six PM
+layers. These results include reruns, not an all-first-attempt pass. See the
+[FREQME status and rerun history](tests/freqme/README.md#status) and
+[machine-readable result](results/20261026-freqme-dapeng.json) for the tested revisions,
+board coverage and exclusions.
 
 ## Prerequisites
 
