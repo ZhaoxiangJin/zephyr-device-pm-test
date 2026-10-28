@@ -74,6 +74,11 @@ int lpdac_setup(void);
  */
 int lpdac_write(uint32_t value);
 
+#if defined(CONFIG_PM_TEST_LAYER_RUNTIME)
+/** @brief Capture the runtime boot state before the control configures the DAC. */
+void lpdac_capture_runtime_boot(void);
+#endif
+
 /** @brief GCR in full, for a log line or an assertion message. */
 uint32_t lpdac_gcr(void);
 

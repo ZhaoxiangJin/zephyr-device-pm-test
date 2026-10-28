@@ -21,9 +21,12 @@
 static void *lpdac_pm_setup(void)
 {
 	(void)pm_test_setup();
+	zassert_true(device_is_ready(LPDAC_DEV), "%s is not ready", LPDAC_DEV->name);
+#if defined(CONFIG_PM_TEST_LAYER_RUNTIME)
+	lpdac_capture_runtime_boot();
+#endif
 	lpdac_report_configuration();
 	pm_test_note_state(LPDAC_DEV, "at boot");
-	lpdac_report_hw("at boot");
 	return NULL;
 }
 
