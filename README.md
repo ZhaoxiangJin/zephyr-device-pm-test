@@ -24,9 +24,11 @@ What it has found so far: [docs/findings.md](docs/findings.md).
 
 ## Prerequisites
 
-A **freestanding Zephyr application and Zephyr module**. It has no `west.yml` of its own and does not
-vendor Zephyr; it builds against the Zephyr already in your west workspace, and each test pulls this
-repository in as a module itself, so `west build` needs no extra flag.
+A **freestanding Zephyr application and Zephyr module**. It does not vendor Zephyr; inside an
+existing west workspace it builds against that workspace's Zephyr, and each test pulls this
+repository in as a module itself, so `west build` needs no extra flag. The optional
+[west manifest](west.yml) pins the integrated Zephyr baseline and its modules for a standalone
+CI workspace.
 
 - Zephyr **v4.4.x** (developed against `4.4.99`).
 - The NXP HAL module (`hal_nxp`) from the Zephyr manifest.
@@ -39,6 +41,18 @@ zephyrproject/
   zephyr/
   zephyr-device-pm-test/   <-- here
 ```
+
+For a separate CI workspace, use this repository as the manifest source:
+
+```sh
+west init -m https://github.com/ZhaoxiangJin/zephyr-device-pm-test --mr <test-commit> pm-ci
+cd pm-ci
+west update
+```
+
+This checks out the pinned Zephyr at `zephyr/` and this test module at
+`zephyr-device-pm-test/`. The same test directories and layer snippets apply.
+Using this entry point does not require adding or publishing a Zephyr submanifest.
 
 `west twister` needs one thing that `west build` does not. Twister decides whether a scenario's
 `required_snippets` exist *before* it configures anything, so it never sees the module this
