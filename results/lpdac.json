@@ -1,0 +1,284 @@
+{
+  "run": "20261028-lpdac-dapeng",
+  "date": "2026-10-28",
+  "case": "lpdac",
+  "where": "dapeng",
+  "zephyr": "485d4c828b3be23170ffd84d681141990771e0d7",
+  "harness": "9ecad703bb3af088d9dc611852fc2f77b081b0fa",
+  "targets": {
+    "frdm_mcxa156/mcxa156": {
+      "job": "2337244",
+      "build_layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      },
+      "layers": {
+        "baseline": "fail",
+        "device": "fail",
+        "dpd": "fail",
+        "runtime": "fail",
+        "sysmanaged": "fail",
+        "system": "fail"
+      }
+    },
+    "frdm_mcxa266/mcxa266": {
+      "job": "2337244",
+      "build_layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      },
+      "layers": {
+        "baseline": "blocked",
+        "device": "blocked",
+        "dpd": "blocked",
+        "runtime": "blocked",
+        "sysmanaged": "blocked",
+        "system": "blocked"
+      },
+      "blocked_by": {
+        "baseline": "serial-device-error",
+        "device": "no_output",
+        "dpd": "no_output",
+        "runtime": "serial-device-error",
+        "sysmanaged": "serial-device-error",
+        "system": "serial-device-error"
+      }
+    },
+    "frdm_mcxa346/mcxa346": {
+      "job": "2337244",
+      "build_layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      },
+      "layers": {
+        "baseline": "blocked",
+        "device": "blocked",
+        "dpd": "blocked",
+        "runtime": "blocked",
+        "sysmanaged": "blocked",
+        "system": "blocked"
+      },
+      "blocked_by": {
+        "baseline": "no_output",
+        "device": "no_output",
+        "dpd": "no_output",
+        "runtime": "no_output",
+        "sysmanaged": "no_output",
+        "system": "no_output"
+      }
+    },
+    "frdm_mcxa366/mcxa366": {
+      "job": "2337244",
+      "build_layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      },
+      "layers": {
+        "baseline": "blocked",
+        "device": "blocked",
+        "dpd": "blocked",
+        "runtime": "blocked",
+        "sysmanaged": "blocked",
+        "system": "blocked"
+      },
+      "blocked_by": {
+        "baseline": "no_output",
+        "device": "no_output",
+        "dpd": "no_output",
+        "runtime": "no_output",
+        "sysmanaged": "no_output",
+        "system": "no_output"
+      }
+    },
+    "frdm_mcxa577/mcxa577": {
+      "job": "2337244",
+      "build_layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      },
+      "layers": {
+        "baseline": "blocked",
+        "device": "blocked",
+        "dpd": "blocked",
+        "runtime": "blocked",
+        "sysmanaged": "blocked",
+        "system": "blocked"
+      },
+      "blocked_by": {
+        "baseline": "no_output",
+        "device": "no_output",
+        "dpd": "no_output",
+        "runtime": "no_output",
+        "sysmanaged": "serial-monitor-error",
+        "system": "no_output"
+      }
+    },
+    "frdm_mcxn947/mcxn947/cpu0": {
+      "job": "2337244",
+      "build_layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      },
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      },
+      "passed_tests": {
+        "baseline": 1,
+        "device": 3,
+        "dpd": 2,
+        "runtime": 3,
+        "sysmanaged": 2,
+        "system": 3
+      }
+    },
+    "frdm_mcxn947/mcxn947/cpu0/qspi": {
+      "job": "2337244",
+      "build_layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      },
+      "layers": {
+        "baseline": "blocked",
+        "device": "blocked",
+        "dpd": "blocked",
+        "runtime": "blocked",
+        "sysmanaged": "blocked",
+        "system": "blocked"
+      },
+      "blocked_by": {
+        "baseline": "no-matching-lpdac-run-log",
+        "device": "no-matching-lpdac-run-log",
+        "dpd": "uart-run-id-mismatch",
+        "runtime": "no-matching-lpdac-run-log",
+        "sysmanaged": "no-matching-lpdac-run-log",
+        "system": "no-matching-lpdac-run-log"
+      }
+    },
+    "mcx_n5xx_evk/mcxn547/cpu0": {
+      "job": "2337244",
+      "build_layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      },
+      "layers": {
+        "baseline": "blocked",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      },
+      "blocked_by": {
+        "baseline": "sdk-install-download-timeout"
+      },
+      "passed_tests": {
+        "device": 3,
+        "dpd": 2,
+        "runtime": 3,
+        "sysmanaged": 2,
+        "system": 3
+      }
+    },
+    "mcx_n9xx_evk/mcxn947/cpu0": {
+      "job": "2337244",
+      "build_layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      },
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      },
+      "passed_tests": {
+        "baseline": 1,
+        "device": 3,
+        "dpd": 2,
+        "runtime": 3,
+        "sysmanaged": 2,
+        "system": 3
+      }
+    },
+    "mcx_n9xx_evk/mcxn947/cpu0/qspi": {
+      "job": "2337244",
+      "build_layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      },
+      "layers": {
+        "baseline": "blocked",
+        "device": "blocked",
+        "dpd": "blocked",
+        "runtime": "blocked",
+        "sysmanaged": "blocked",
+        "system": "blocked"
+      },
+      "blocked_by": {
+        "baseline": "no-matching-lpdac-run-log",
+        "device": "uart-run-id-mismatch",
+        "dpd": "uart-run-id-mismatch",
+        "runtime": "no-matching-lpdac-run-log",
+        "sysmanaged": "no-matching-lpdac-run-log",
+        "system": "uart-run-id-mismatch"
+      }
+    }
+  },
+  "findings": [
+    {
+      "id": "lpdac-test-gcr-read-before-channel-setup",
+      "fix_verified": "no"
+    },
+    {
+      "id": "lpdac-runtime-boot-check-after-control",
+      "fix_verified": "no"
+    }
+  ]
+}

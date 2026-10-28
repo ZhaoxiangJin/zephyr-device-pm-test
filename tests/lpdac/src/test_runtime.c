@@ -14,8 +14,8 @@
  * get/put would drop the output the moment the call returned. The reference is the
  * consumer's, and a call that arrives without one is refused.
  *
- * Two tests. The first has to run first: it reads the state the device booted in,
- * and the second leaves it suspended.
+ * Suite setup captures the boot state before any test configures the DAC.
+ * The reference-counting test leaves it suspended.
  */
 
 #include <zephyr/pm/device.h>
@@ -26,37 +26,35 @@
 
 #include "lpdac.h"
 
+static struct {
+	bool enabled;
+	enum pm_device_state state;
+	int state_rc;
+	int setup_rc;
+} runtime_boot;
+
+void lpdac_capture_runtime_boot(void)
+{
+	runtime_boot.enabled = pm_device_runtime_is_enabled(LPDAC_DEV);
+	runtime_boot.state_rc = pm_device_state_get(LPDAC_DEV, &runtime_boot.state);
+	runtime_boot.setup_rc = lpdac_setup();
+}
+
 ZTEST(lpdac_pm, test_runtime_boots_without_a_consumer)
 {
-	enum pm_device_state state;
-	int setup_rc;
-
-	zassert_true(pm_device_runtime_is_enabled(LPDAC_DEV),
+	zassert_true(runtime_boot.enabled,
 		     "runtime PM is not enabled on %s, so this layer tests nothing",
 		     LPDAC_DEV->name);
 
-	/*
-	 * Two boot states are legal. Without a power domain the device lands in
-	 * SUSPENDED: pm_device_driver_init() ran TURN_ON and stopped short of RESUME
-	 * because runtime PM is about to take over. With a domain it lands in OFF,
-	 * because the domain is runtime-suspended before the DAC initialises and
-	 * TURN_ON was skipped -- pd-soc-state-change-no-turn-on-under-runtime-pm in
-	 * docs/findings.md. On these SoCs it is always the second, and it costs this
-	 * driver nothing: the configuration is written by channel_setup(), which a
-	 * consumer cannot call without first taking a reference.
-	 */
-	zassert_ok(pm_device_state_get(LPDAC_DEV, &state), "pm_device_state_get() failed");
-	zassert_true((state == PM_DEVICE_STATE_SUSPENDED) || (state == PM_DEVICE_STATE_OFF),
+	zassert_ok(runtime_boot.state_rc, "pm_device_state_get() failed");
+	zassert_true((runtime_boot.state == PM_DEVICE_STATE_SUSPENDED) ||
+		     (runtime_boot.state == PM_DEVICE_STATE_OFF),
 		     "%s booted %s, want SUSPENDED or OFF under runtime PM", LPDAC_DEV->name,
-		     pm_device_state_str(state));
+		     pm_device_state_str(runtime_boot.state));
 
-	/* Nothing may be driving a pin before a consumer has asked for it. */
-	zassert_false(lpdac_output_on(), "GCR[DACEN] set before any consumer asked for an output");
-
-	setup_rc = lpdac_setup();
-	zassert_equal(setup_rc, -EBUSY, "channel setup without a reference returned %d, want -EBUSY",
-		      setup_rc);
-	zassert_false(lpdac_output_on(), "a refused channel setup enabled the output buffer");
+	zassert_equal(runtime_boot.setup_rc, -EBUSY,
+		      "channel setup without a reference returned %d, want -EBUSY",
+		      runtime_boot.setup_rc);
 }
 
 ZTEST(lpdac_pm, test_runtime_reference_counting)

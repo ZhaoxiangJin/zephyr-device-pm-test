@@ -86,6 +86,9 @@ Previous results belong in Git history, not in additional files under `results/`
 - `job` / `station` identify the source of a result. Optional `passed_tests`, `elf_sha256` and
   `serial_logs` mappings contain final per-layer counts or evidence references, not execution steps.
   The collector emits the core schema shown above.
+- Optional `build_layers` preserves verified build outcomes separately from hardware verdicts.
+  `blocked_by` identifies an external blocker per layer, and `logs` links supporting farm logs.
+  A farm setup failure is `blocked`, not a driver `fail` or a hardware `pass`.
 
 ## Verdicts
 
