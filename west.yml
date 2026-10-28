@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+manifest:
+  projects:
+    - name: zephyr
+      url: https://github.com/zephyrproject-rtos/zephyr.git
+      revision: ec98918869caeb2ddaef6e698f9ff36fb60a97ac
+      path: zephyr
+      import: true
+  self:
+    path: zephyr-device-pm-test
