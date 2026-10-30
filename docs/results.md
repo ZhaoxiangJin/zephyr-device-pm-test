@@ -52,6 +52,11 @@ An older date is rejected unless `--force` is explicitly supplied. For the same 
 collected result replaces the previous one. `--dry-run` previews the replacement without writing.
 Previous results belong in Git history, not in additional files under `results/`.
 
+A broad build-only job and a representative hardware job from the same campaign
+may share this file only when both Zephyr and test-source revisions are identical.
+Targets selected only for compilation remain `built`; attempted hardware targets
+blocked in environment preparation remain `blocked`, not driver `fail`.
+
 ## Schema
 
 ```json
@@ -86,6 +91,10 @@ Previous results belong in Git history, not in additional files under `results/`
 - `job` / `station` identify the source of a result. Optional `passed_tests`, `elf_sha256` and
   `serial_logs` mappings contain final per-layer counts or evidence references, not execution steps.
   The collector emits the core schema shown above.
+- Optional `stations` maps layers to station IDs when a target ran on multiple stations.
+  In that case, omit the single `station` field rather than attributing every layer to one station.
+  `task_ids` and `run_ids` may identify each layer's final task and compiled/captured RunID.
+  These mappings describe retained final results, not earlier attempts.
 - Optional `build_layers` preserves verified build outcomes separately from hardware verdicts.
   `blocked_by` identifies an external blocker per layer, and `logs` links supporting farm logs.
   A farm setup failure is `blocked`, not a driver `fail` or a hardware `pass`.

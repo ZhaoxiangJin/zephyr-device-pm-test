@@ -68,6 +68,7 @@ ZTEST(lpdac_pm, test_runtime_reference_counting)
 	zassert_ok(lpdac_write(LPDAC_MIDSCALE), "write under a held reference failed");
 	zassert_true(lpdac_output_on(), "GCR[DACEN] clear while PM reports ACTIVE");
 	config = lpdac_gcr_config();
+	zassert_not_equal(config, 0U, "GCR carries no configuration after channel setup");
 
 	/* A second reference must not be a second resume, and releasing it must not
 	 * drop an output somebody else is still holding.
@@ -81,6 +82,12 @@ ZTEST(lpdac_pm, test_runtime_reference_counting)
 	zassert_pm_state(LPDAC_DEV, PM_DEVICE_STATE_SUSPENDED);
 	lpdac_report_hw("after-put");
 	zassert_false(lpdac_output_on(), "GCR[DACEN] still set after the last runtime_put");
+	zassert_equal(lpdac_setup(), -EBUSY, "setup without a runtime reference was accepted");
+	zassert_equal(lpdac_write(LPDAC_MIDSCALE), -EBUSY,
+		      "write without a runtime reference was accepted");
+	zassert_pm_state(LPDAC_DEV, PM_DEVICE_STATE_SUSPENDED);
+	zassert_false(lpdac_output_on(), "a refused API call enabled the output");
+	zassert_equal(lpdac_gcr_config(), config, "a refused API call changed configuration");
 
 	/*
 	 * And the consumer gets its output back by taking the reference again, without

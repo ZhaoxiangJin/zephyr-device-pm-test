@@ -16,6 +16,10 @@ that declaration is authoritative — this table is the human summary of it.
 - **lpdac** covers 10 targets: every MCXN one except `frdm_mcxn236`, and every MCXA one except
   `frdm_mcxa153` and `frdm_mcxa344`. Those three SoCs have no `nxp,lpdac` node at all. (`dac2` on
   MCXN947 is an `nxp,hpdac` and a different driver.)
+  The default campaign chooses one internal-flash, primary-core variant per physical board:
+  eight distinct boards and all six layers, or 48 build-and-run configurations.
+  QSPI variants require an explicit request and are not part of the
+  [current verified LPDAC result](../tests/lpdac/README.md#results).
 - **vref** covers the MCXN targets only: no MCXA SoC has an `nxp,vref` node.
 - **ftm** covers the KE1xZ and MCXE targets only, and nothing else above: no MCXN or MCXA SoC has an
   FTM at all. It is also the one case that does not run all six layers — see
