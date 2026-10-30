@@ -137,8 +137,10 @@ subtests**, with no failed or skipped subtests.
 | `frdm_mcxa577/mcxa577` | pass | pass | pass | pass | pass | pass |
 
 Every retained layer has one matching-image boot, matching start/final RunIDs,
-a complete ztest summary and final execution success. The result record includes
-per-layer task IDs, station IDs, test counts, ELF hashes and UART-log references.
+a complete ztest summary and final execution success. The result record keeps
+the standard source pins, job IDs and per-board layer verdicts. Detailed image
+and UART audit evidence is retained separately; task logs are available through
+the Dapeng job above.
 QSPI execution is not claimed by this eight-board campaign.
 
 | Role | Branch | Commit |

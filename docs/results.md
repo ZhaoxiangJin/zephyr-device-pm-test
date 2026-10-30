@@ -6,9 +6,10 @@ latest collected result: which layers ran, on which boards, and how. The Device 
 reported as "there is a test" separately from "the test passes on silicon" — a distinction no amount
 of static analysis of the Zephyr tree can make.
 
-**These files hold results only:** per-target layer verdicts, tested revisions, result identifiers,
-and optional final test counts or image hashes. Do not record build/debug steps, intermediate
-candidates, retry histories, session cleanup, or development progress. A defect belongs in
+**These files hold the collector's compact result schema:** per-target layer verdicts, tested
+revisions and result identifiers. Keep detailed counts, image hashes, logs and other audit evidence
+in campaign artifacts, not these files. Do not record build/debug steps, intermediate candidates,
+retry histories, session cleanup, or development progress. A defect belongs in
 [findings.md](findings.md); test requirements and coverage limits belong in the case's README.
 
 ## Producing one
@@ -88,16 +89,11 @@ blocked in environment preparation remain `blocked`, not driver `fail`.
   not survive its own branch. A `-dirty` suffix on `harness` means the collector found uncommitted
   changes, so the named commit is not what ran — the record is still useful as a local note, but it
   cannot be cited. Commit first, then regenerate.
-- `job` / `station` identify the source of a result. Optional `passed_tests`, `elf_sha256` and
-  `serial_logs` mappings contain final per-layer counts or evidence references, not execution steps.
-  The collector emits the core schema shown above.
-- Optional `stations` maps layers to station IDs when a target ran on multiple stations.
-  In that case, omit the single `station` field rather than attributing every layer to one station.
-  `task_ids` and `run_ids` may identify each layer's final task and compiled/captured RunID.
-  These mappings describe retained final results, not earlier attempts.
-- Optional `build_layers` preserves verified build outcomes separately from hardware verdicts.
-  `blocked_by` identifies an external blocker per layer, and `logs` links supporting farm logs.
-  A farm setup failure is `blocked`, not a driver `fail` or a hardware `pass`.
+- `job` / `station` identify the source of a result. `station` is optional; omit it when a target's
+  layers ran on different stations rather than attributing every layer to one station.
+  The collector emits the compact schema shown above.
+
+A farm setup failure is `blocked`, not a driver `fail` or a hardware `pass`.
 
 ## Verdicts
 
