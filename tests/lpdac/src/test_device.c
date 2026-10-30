@@ -31,14 +31,16 @@ ZTEST(lpdac_pm, test_device_suspend_resume)
 
 	zassert_ok(lpdac_setup(), "channel setup failed");
 	zassert_ok(lpdac_write(LPDAC_MIDSCALE), "write failed");
-	zassert_true(lpdac_output_on(), "GCR[DACEN] clear while PM reports ACTIVE");
+	zassert_true(lpdac_output_on(),
+		     "output enables incomplete while PM reports ACTIVE");
 	config = lpdac_gcr_config();
 	zassert_not_equal(config, 0U, "GCR carries no configuration after channel setup");
 
 	zassert_ok(pm_device_action_run(LPDAC_DEV, PM_DEVICE_ACTION_SUSPEND),
 		   "SUSPEND action rejected");
 	zassert_pm_state(LPDAC_DEV, PM_DEVICE_STATE_SUSPENDED);
-	zassert_false(lpdac_output_on(), "GCR[DACEN] still set after SUSPEND");
+	zassert_true(lpdac_output_off(),
+		     "an output enable remains set after SUSPEND");
 	zassert_equal(lpdac_gcr_config(), config,
 		      "SUSPEND changed the configuration: 0x%08x -> 0x%08x", config,
 		      lpdac_gcr_config());
@@ -56,7 +58,8 @@ ZTEST(lpdac_pm, test_device_suspend_resume)
 	zassert_equal(setup_rc, -EBUSY,
 		      "channel setup against a SUSPENDED device returned %d, want -EBUSY",
 		      setup_rc);
-	zassert_false(lpdac_output_on(), "a refused call re-enabled the output buffer");
+	zassert_true(lpdac_output_off(),
+		     "a refused call re-enabled the output buffer");
 
 	zassert_ok(pm_device_action_run(LPDAC_DEV, PM_DEVICE_ACTION_RESUME),
 		   "RESUME action rejected");
@@ -81,7 +84,7 @@ ZTEST(lpdac_pm, test_device_turn_on_rebuilds_the_register_block)
 	uint32_t config;
 	uint32_t config_clobbered;
 	uint32_t config_after_turn_on;
-	bool on_after_turn_on;
+	bool off_after_turn_on;
 	bool on_after_resume;
 	int suspend_rc;
 	int turn_off_rc;
@@ -109,7 +112,7 @@ ZTEST(lpdac_pm, test_device_turn_on_rebuilds_the_register_block)
 
 	turn_on_rc = pm_device_action_run(LPDAC_DEV, PM_DEVICE_ACTION_TURN_ON);
 	config_after_turn_on = lpdac_gcr_config();
-	on_after_turn_on = lpdac_output_on();
+	off_after_turn_on = lpdac_output_off();
 	lpdac_report_hw("after-turn-on");
 
 	resume_rc = pm_device_action_run(LPDAC_DEV, PM_DEVICE_ACTION_RESUME);
@@ -140,7 +143,7 @@ ZTEST(lpdac_pm, test_device_turn_on_rebuilds_the_register_block)
 	 * device as suspended, so a block left converting would be driving a pin that
 	 * PM believes is quiet; putting the output back is RESUME's job.
 	 */
-	zassert_false(on_after_turn_on, "TURN_ON left the output buffer on");
+	zassert_true(off_after_turn_on, "TURN_ON left an output enable set");
 	zassert_true(on_after_resume, "RESUME did not put the output buffer back");
 }
 
@@ -152,13 +155,14 @@ ZTEST(lpdac_pm, test_device_configured_idle_stays_idle)
 	zassert_ok(lpdac_setup(), "channel setup failed");
 	config = lpdac_gcr_config();
 	zassert_not_equal(config, 0U, "GCR carries no configuration after channel setup");
-	zassert_false(lpdac_output_on(), "channel setup enabled an unwritten output");
+	zassert_true(lpdac_output_off(),
+		     "channel setup enabled an unwritten output");
 
 	zassert_ok(pm_device_action_run(LPDAC_DEV, PM_DEVICE_ACTION_SUSPEND),
 		   "SUSPEND rejected");
 	zassert_ok(pm_device_action_run(LPDAC_DEV, PM_DEVICE_ACTION_RESUME),
 		   "RESUME rejected");
-	zassert_false(lpdac_output_on(), "RESUME enabled an unwritten output");
+	zassert_true(lpdac_output_off(), "RESUME enabled an unwritten output");
 	zassert_equal(lpdac_gcr_config(), config, "RESUME changed idle configuration");
 
 	zassert_ok(pm_device_action_run(LPDAC_DEV, PM_DEVICE_ACTION_SUSPEND),
@@ -172,11 +176,12 @@ ZTEST(lpdac_pm, test_device_configured_idle_stays_idle)
 		   "TURN_ON rejected");
 	zassert_pm_state(LPDAC_DEV, PM_DEVICE_STATE_SUSPENDED);
 	zassert_equal(lpdac_gcr_config(), config, "TURN_ON did not replay idle configuration");
-	zassert_false(lpdac_output_on(), "TURN_ON enabled an unwritten output");
+	zassert_true(lpdac_output_off(), "TURN_ON enabled an unwritten output");
 
 	zassert_ok(pm_device_action_run(LPDAC_DEV, PM_DEVICE_ACTION_RESUME),
 		   "RESUME after TURN_ON rejected");
 	zassert_pm_state(LPDAC_DEV, PM_DEVICE_STATE_ACTIVE);
 	zassert_equal(lpdac_gcr_config(), config, "RESUME changed replayed configuration");
-	zassert_false(lpdac_output_on(), "RESUME after TURN_ON enabled an unwritten output");
+	zassert_true(lpdac_output_off(),
+		     "RESUME after TURN_ON enabled an unwritten output");
 }

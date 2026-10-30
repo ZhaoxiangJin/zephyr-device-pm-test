@@ -10,9 +10,9 @@
  * A DAC output has no completion event, so there is no operation whose success
  * could stand in for "the block is powered and configured" the way a conversion
  * does next door. What this case observes instead is GCR, the only register the
- * driver's PM callbacks write: bit DACEN is the analog output buffer, which
- * SUSPEND clears and RESUME puts back, and the rest of the register is the
- * devicetree configuration, which only TURN_ON rebuilds.
+ * driver's PM callbacks write. DACEN and the optional BUF_EN are output
+ * enables; SUSPEND clears them and RESUME puts them back. The remaining
+ * fields are the configuration, which TURN_ON rebuilds.
  *
  * Two things are deliberately not observed. DATA is write-only -- MCX Nx4x RM
  * Rev. 6_RC2 section 42.7.1.4 shows a zero read row -- so the code the driver
@@ -82,11 +82,14 @@ void lpdac_capture_runtime_boot(void);
 /** @brief GCR in full, for a log line or an assertion message. */
 uint32_t lpdac_gcr(void);
 
-/** @brief GCR without DACEN: the configuration half, which TURN_ON rebuilds. */
+/** @brief GCR configuration, excluding output enables. */
 uint32_t lpdac_gcr_config(void);
 
-/** @brief True while GCR[DACEN] says the analog output buffer is on. */
+/** @brief True while every implemented output enable is set. */
 bool lpdac_output_on(void);
+
+/** @brief True while every implemented output enable is clear. */
+bool lpdac_output_off(void);
 
 /**
  * @brief Clear GCR, leaving the block looking the way a reset leaves it.
@@ -105,5 +108,8 @@ void lpdac_report_configuration(void);
  * @param when short label for where in the sequence this is, e.g. "before".
  */
 void lpdac_report_hw(const char *when);
+
+/** @brief Print GCR captured before reporting changes the hardware state. */
+void lpdac_report_hw_snapshot(const char *when, uint32_t gcr);
 
 #endif /* LPDAC_PM_H_ */

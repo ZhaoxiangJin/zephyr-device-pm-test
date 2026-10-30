@@ -66,7 +66,8 @@ ZTEST(lpdac_pm, test_runtime_reference_counting)
 
 	zassert_ok(lpdac_setup(), "channel setup under a held reference failed");
 	zassert_ok(lpdac_write(LPDAC_MIDSCALE), "write under a held reference failed");
-	zassert_true(lpdac_output_on(), "GCR[DACEN] clear while PM reports ACTIVE");
+	zassert_true(lpdac_output_on(),
+		     "output enables incomplete while PM reports ACTIVE");
 	config = lpdac_gcr_config();
 	zassert_not_equal(config, 0U, "GCR carries no configuration after channel setup");
 
@@ -81,12 +82,14 @@ ZTEST(lpdac_pm, test_runtime_reference_counting)
 	zassert_ok(pm_device_runtime_put(LPDAC_DEV), "last runtime_put rejected");
 	zassert_pm_state(LPDAC_DEV, PM_DEVICE_STATE_SUSPENDED);
 	lpdac_report_hw("after-put");
-	zassert_false(lpdac_output_on(), "GCR[DACEN] still set after the last runtime_put");
+	zassert_true(lpdac_output_off(),
+		     "an output enable remains set after runtime_put");
 	zassert_equal(lpdac_setup(), -EBUSY, "setup without a runtime reference was accepted");
 	zassert_equal(lpdac_write(LPDAC_MIDSCALE), -EBUSY,
 		      "write without a runtime reference was accepted");
 	zassert_pm_state(LPDAC_DEV, PM_DEVICE_STATE_SUSPENDED);
-	zassert_false(lpdac_output_on(), "a refused API call enabled the output");
+	zassert_true(lpdac_output_off(),
+		     "a refused API call enabled the output");
 	zassert_equal(lpdac_gcr_config(), config, "a refused API call changed configuration");
 
 	/*
