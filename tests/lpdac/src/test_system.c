@@ -182,7 +182,7 @@ ZTEST(lpdac_pm, test_system_constraint_follows_the_output)
 	zassert_equal(while_suspended, 0U,
 		      "%u power state(s) still locked while the DAC was suspended",
 		      while_suspended);
-	zassert_true(on_after_resume, "GCR[DACEN] clear after the output was resumed");
+	zassert_true(on_after_resume, "output enables incomplete after RESUME");
 	zassert_equal(after_resume, declared,
 		      "%u state(s) locked after the output was resumed, %u declared",
 		      after_resume, declared);
@@ -195,7 +195,7 @@ ZTEST(lpdac_pm, test_system_reconfigure_releases_constraint)
 	unsigned int while_on;
 	unsigned int after_setup;
 	unsigned int at_end;
-	bool on_after_setup;
+	bool off_after_setup;
 	int setup_rc;
 	int put_rc;
 
@@ -206,7 +206,7 @@ ZTEST(lpdac_pm, test_system_reconfigure_releases_constraint)
 	while_on = locked_states();
 
 	setup_rc = lpdac_setup();
-	on_after_setup = lpdac_output_on();
+	off_after_setup = lpdac_output_off();
 	after_setup = locked_states();
 	put_rc = pm_device_runtime_put(LPDAC_DEV);
 	pm_test_console_quiesce();
@@ -214,7 +214,8 @@ ZTEST(lpdac_pm, test_system_reconfigure_releases_constraint)
 
 	zassert_true(while_on > 0U, "the initial output held no constraint");
 	zassert_ok(setup_rc, "reconfiguration failed (%d)", setup_rc);
-	zassert_false(on_after_setup, "reconfiguration left the output on");
+	zassert_true(off_after_setup,
+		     "reconfiguration left an output enable set");
 	zassert_equal(after_setup, 0U, "reconfiguration left %u state(s) locked",
 		      after_setup);
 	zassert_ok(put_rc, "runtime_put failed (%d)", put_rc);

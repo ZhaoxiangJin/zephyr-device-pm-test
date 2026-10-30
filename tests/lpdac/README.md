@@ -111,6 +111,13 @@ they are not a blanket limitation of the current LPDAC matrix.
 
 ## Results
 
+The PR integration branch is
+[`lpdac-farm-safe-ci-20261028`](https://github.com/ZhaoxiangJin/zephyr-device-pm-test/tree/lpdac-farm-safe-ci-20261028).
+Its LPDAC test implementation matches the verified
+`4f74554b5a97ae45c76986cd3d9cae3ece3ba9e0` implementation. The record below
+keeps the original tested revisions rather than relabelling a later integration
+commit as the commit that ran.
+
 Final result: [lpdac.json](../../results/lpdac.json), dated 2026-10-30, from
 [Dapeng job 2340053](https://dapeng.nxp.com/app/request/2340053/testcases/).
 All **48 build-and-run configurations** pass: eight boards, one variant per
@@ -136,7 +143,7 @@ QSPI execution is not claimed by this eight-board campaign.
 
 | Role | Branch | Commit |
 | --- | --- | --- |
-| Test implementation | [lpdac-farm-safe-ci-20261029](https://github.com/ZhaoxiangJin/zephyr-device-pm-test/tree/lpdac-farm-safe-ci-20261029) | `4f74554b5a97ae45c76986cd3d9cae3ece3ba9e0` |
+| Original tested harness | [lpdac-farm-safe-ci-20261029](https://github.com/ZhaoxiangJin/zephyr-device-pm-test/tree/lpdac-farm-safe-ci-20261029) | `4f74554b5a97ae45c76986cd3d9cae3ece3ba9e0` |
 | Zephyr source fixes | [debug-mcxa156-device-pm-20261030](https://github.com/ZhaoxiangJin/zephyr/tree/debug-mcxa156-device-pm-20261030) | `6f42c26cefee3eb21ce7340e9a67df08f5bc46f6` |
 | Dapeng source entry | [debug-lpdac-pm-fixes-20261030-dapeng1](https://github.com/ZhaoxiangJin/zephyr/tree/debug-lpdac-pm-fixes-20261030-dapeng1) | `111a15cede87ac626e1fe1379fa6003add219061` |
 
@@ -144,3 +151,7 @@ The Dapeng entry contains the source fixes plus a CI-only submanifest pinning
 the test implementation. The result's `zephyr` field therefore names
 `111a15cede87ac626e1fe1379fa6003add219061`, not the source-fix branch tip.
 These results apply only to that immutable source pair.
+
+The standalone `west.yml` pins a separate shared baseline. It is not the Zephyr
+revision used for this LPDAC campaign; use the source pair above when reproducing
+these results.

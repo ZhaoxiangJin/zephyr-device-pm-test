@@ -16,6 +16,13 @@
 
 #include "lpdac.h"
 
+#if defined(FSL_FEATURE_LPDAC_HAS_GCR_BUF_EN) && \
+	FSL_FEATURE_LPDAC_HAS_GCR_BUF_EN
+#define LPDAC_OUTPUT_ENABLE_MASK (LPDAC_GCR_DACEN_MASK | LPDAC_GCR_BUF_EN_MASK)
+#else
+#define LPDAC_OUTPUT_ENABLE_MASK LPDAC_GCR_DACEN_MASK
+#endif
+
 static LPDAC_Type *const base = (LPDAC_Type *)DT_REG_ADDR(LPDAC_NODE);
 
 static const struct dac_channel_cfg lpdac_ch_cfg = {
@@ -40,12 +47,19 @@ uint32_t lpdac_gcr(void)
 
 uint32_t lpdac_gcr_config(void)
 {
-	return base->GCR & ~LPDAC_GCR_DACEN_MASK;
+	return base->GCR & ~LPDAC_OUTPUT_ENABLE_MASK;
 }
 
 bool lpdac_output_on(void)
 {
-	return (base->GCR & LPDAC_GCR_DACEN_MASK) != 0U;
+	uint32_t enables = base->GCR & LPDAC_OUTPUT_ENABLE_MASK;
+
+	return enables == LPDAC_OUTPUT_ENABLE_MASK;
+}
+
+bool lpdac_output_off(void)
+{
+	return (base->GCR & LPDAC_OUTPUT_ENABLE_MASK) == 0U;
 }
 
 void lpdac_gcr_clobber(void)
@@ -62,5 +76,11 @@ void lpdac_report_configuration(void)
 
 void lpdac_report_hw(const char *when)
 {
-	TC_PRINT("hw(%s) GCR=0x%08x DACEN=%u\n", when, base->GCR, lpdac_output_on() ? 1U : 0U);
+	lpdac_report_hw_snapshot(when, lpdac_gcr());
+}
+
+void lpdac_report_hw_snapshot(const char *when, uint32_t gcr)
+{
+	TC_PRINT("hw(%s) GCR=0x%08x DACEN=%u\n", when, gcr,
+		 (gcr & LPDAC_GCR_DACEN_MASK) != 0U ? 1U : 0U);
 }

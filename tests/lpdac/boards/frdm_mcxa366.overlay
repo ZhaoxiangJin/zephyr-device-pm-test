@@ -13,6 +13,7 @@
 		dac = <&dac0>;
 		dac-channel-id = <0>;
 		dac-resolution = <12>;
+		dac-console-shared-pad;
 	};
 };
 

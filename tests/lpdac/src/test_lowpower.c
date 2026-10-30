@@ -32,7 +32,12 @@ ZTEST(lpdac_pm, test_sweep_across_transition)
 {
 	uint32_t config;
 	uint32_t config_after;
+	uint32_t gcr_after;
 	bool on_after;
+	bool off_for_report = false;
+	int report_quiesce_ret = 0;
+	const bool shared_console_pad =
+		DT_PROP_OR(LPDAC_USER_NODE, dac_console_shared_pad, false);
 
 	/* No runtime PM in these layers, so the sweep is the only thing that will
 	 * suspend the device.
@@ -52,10 +57,26 @@ ZTEST(lpdac_pm, test_sweep_across_transition)
 	 */
 	config_after = lpdac_gcr_config();
 	on_after = lpdac_output_on();
+	gcr_after = lpdac_gcr();
+
+	if (shared_console_pad) {
+		/* Snapshot first, then release the shared pad. */
+		report_quiesce_ret = lpdac_setup();
+		if (report_quiesce_ret == 0) {
+			off_for_report = lpdac_output_off();
+		}
+	}
 
 	pm_test_console_resume(PM_TEST_CONSOLE_REINIT_PINMUX);
 	TC_PRINT("resumed from %s\n", PM_TEST_TRANSITION_NAME);
-	lpdac_report_hw("after-resume");
+	lpdac_report_hw_snapshot("after-resume", gcr_after);
+	if (shared_console_pad) {
+		lpdac_report_hw("report-quiesced");
+		zassert_ok(report_quiesce_ret,
+			   "cannot release the DAC/UART shared pad");
+		zassert_true(off_for_report,
+			     "DAC output still drives the console pad");
+	}
 
 	/*
 	 * pm_resume_devices() walks the devices it suspended in init order, so the
