@@ -22,13 +22,6 @@ transition behaves. A failing layer is a finding, not a broken harness.
 
 What it has found so far: [docs/findings.md](docs/findings.md).
 
-The latest [LPDAC result](results/lpdac.json) is Dapeng job
-[2340053](https://dapeng.nxp.com/app/request/2340053/testcases/): all 48
-board/layer configurations pass, covering eight boards and all six PM layers.
-Each retained result has matching compiled and captured RunIDs and a complete
-UART summary. See the [LPDAC case](tests/lpdac/README.md#results) for the matrix,
-coverage limits and immutable tested revisions.
-
 ## Prerequisites
 
 A **freestanding Zephyr application and Zephyr module**. It does not vendor Zephyr; inside an
