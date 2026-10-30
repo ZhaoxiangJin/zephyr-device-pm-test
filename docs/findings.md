@@ -14,8 +14,15 @@ so does the commit message that fixes one.
 | `lpadc-read-takes-no-runtime-reference` | lpadc | the read path took no runtime PM reference at all | `drivers/adc/adc_mcux_lpadc.c` | fixed, verified on hardware |
 | `lpadc-channel-setup-unbalances-bandgap` | lpadc | `adc_channel_setup()` left the bandgap regulator reference count unbalanced | `drivers/adc/adc_mcux_lpadc.c` | fixed, verified on hardware |
 | `lpadc-no-restore-after-dpd` | lpadc | nothing reconfigured or recalibrated the register block after Deep Power Down | `drivers/adc/adc_mcux_lpadc.c` | fixed, verified on hardware |
-| `lpdac-test-gcr-read-before-channel-setup` | lpdac test harness | suite setup reads GCR before the first channel setup has released the peripheral reset; on MCXA156 this causes a precise bus fault at `0x400b400c` before the control test or PM assertions execute | `tests/lpdac/src/main.c`, `tests/lpdac/src/lpdac.c` | corrected in test source; hardware verification pending |
-| `lpdac-runtime-boot-check-after-control` | lpdac test harness | `test_control_write` configures and drives the DAC before `test_runtime_boots_without_a_consumer`, so the latter checks a previously configured device rather than the untouched boot state | `tests/lpdac/src/test_runtime.c`, `tests/lpdac/src/test_control.c` | corrected in test source; hardware verification pending |
+| `lpdac-test-gcr-read-before-channel-setup` | lpdac test harness | suite setup reads GCR before the first channel setup has released the peripheral reset; on MCXA156 this causes a precise bus fault at `0x400b400c` before the control test or PM assertions execute | `tests/lpdac/src/main.c`, `tests/lpdac/src/lpdac.c` | fixed in tested harness `4f74554b5a97`; all eight boards pass all six layers in job `2340053` |
+| `lpdac-runtime-boot-check-after-control` | lpdac test harness | `test_control_write` configures and drives the DAC before `test_runtime_boots_without_a_consumer`, so the latter checks a previously configured device rather than the untouched boot state | `tests/lpdac/src/test_runtime.c`, `tests/lpdac/src/test_control.c` | fixed in tested harness `4f74554b5a97`; runtime passes 3/3 on all eight boards in job `2340053` |
+| `dapeng-manifest-runtime-west-not-initialized` | historical lpdac CI adapter | the generic runtime adapter checks out the standalone manifest repository as plain Git and calls `west sdk install` without its initialized Zephyr workspace; selected tasks stop before firmware execution with `unknown command "sdk"` | Dapeng generic Zephyr runtime adapter | not a blocker for job `2340053`, whose Zephyr workspace entry imports the pinned test module; no generic-adapter software fix is claimed |
+| `lpdac-optional-buffer-left-enabled` | lpdac, MCXA | `DACEN=0` can coexist with `BUF_EN=1`; treating the optional buffer enable as configuration allows an output to remain active while the DAC enable is clear | `drivers/dac/dac_mcux_lpdac.c` and LPDAC register assertions | fixed in tested Zephyr `111a15cede87` and harness `4f74554b5a97`; all implemented output enables are checked on/off |
+| `lpdac-mcxaxx6-console-reporting-corruption` | lpdac, MCXA266/346/366 | DAC output and default LPUART2 TX share P2_2; an actively restored DAC can corrupt UART reporting even when PM assertions succeed in RAM | shared-pad test observation, separate from output-restoration assertions | fixed in tested harness `4f74554b5a97`; capture restored state before consumer channel setup releases the shared pad; all three boards pass sysmanaged/DPD 2/2 over default UART |
+| `mcxa-deepsleep-missing-wakeup-delay` | lpdac, MCXA266 | Deep Sleep omits the SPC wakeup delay while active and low-power core voltages differ, causing a core low-voltage reset | `soc/nxp/mcx/mcxa/power.c` | corrected in tested Zephyr `111a15cede87`; MCXA266 passes all six layers in job `2340053` |
+| `mcxaxx6-lpuart-missing-power-domain` | lpdac DPD environment, MCXA266/346/366 | UART RESUME can access BAUD before its clock is restored after CORE power loss; the missing domain link prevents TURN_ON reinitialization | `dts/arm/nxp/mcx/mcxa/nxp_mcxaxx6_common.dtsi` | all five declared LPUARTs linked to CORE in the tested source; all three boards pass DPD 2/2 |
+| `mcxa156-and-mcxa346-lpm-incomplete` | historical lpdac observations | distinct causes: MCXA156 required the OS timer idle-entry deadline hook, board handoff states and UART CORE-domain links; MCXA346 required shared-pad-safe reporting | `drivers/timer/mcux_os_timer.c`, MCXA156 board/DTS integration and LPDAC reporting | corrected in the pinned source pair; both boards pass all six layers in job `2340053` |
+| `mcxa577-dpd-reboot-loop` | lpdac DPD environment, MCXA577 | device resume faults at LPUART2 BAUD, `CFSR=0x8200`, `BFAR=0x500a1010`, because the UART misses TURN_ON without a CORE-domain link | `dts/arm/nxp/mcx/mcxa/nxp_mcxa5x_common.dtsi` | all six declared UARTs linked to CORE in the tested source; MCXA577 passes DPD 2/2 and all six layers in job `2340053` |
 | `lpcmp-boots-enabled-while-suspended` | lpcmp | `nxp_lpcmp_init()` sets `CCR0.CMP_EN` and only then calls `pm_device_driver_init()`, so with runtime PM the block is left enabled while PM reports SUSPENDED | `drivers/comparator/comparator_nxp_lpcmp.c` | open |
 | `lpcmp-set-trigger-callback-reenables` | lpcmp | `set_trigger_callback()` unconditionally sets `CMP_EN`, re-enabling a suspended comparator behind PM's back | `drivers/comparator/comparator_nxp_lpcmp.c` | open |
 | `lpcmp-pinctrl-never-applied` | lpcmp | the driver never calls `pinctrl_apply_state()` although its binding includes `pinctrl-device.yaml`, so `pinctrl-0` has no effect (not a PM defect; it is why no layer asserts on the output *value* without the loopback option) | `drivers/comparator/comparator_nxp_lpcmp.c` | open |
@@ -45,7 +52,7 @@ so does the commit message that fixes one.
 | `pd-soc-state-change-no-turn-on-under-runtime-pm` | port, vref | a child of such a domain never receives `TURN_ON` under runtime device PM: the domain is runtime-suspended before the child initialises, and it forwards `TURN_ON` only on the system state changes it lists | `drivers/power_domain/power_domain_soc_state_change.c` | open |
 | `vref-unconfigured-under-runtime-pm` | vref | consequence of the row above: the vref block never receives its devicetree configuration, because the `TURN_ON` that carries it never runs. `CSR` reads `0x00010800` — the mode bits from `regulator_common_init()` are there, `ICOMPEN`/`CHOPEN`/`REGEN` are not | `drivers/regulator/regulator_nxp_vref.c` or the domain driver | open |
 | `mcxe247-idle-stack-too-small-for-pm-sweep` | ftm, frdm_mcxe247 | the 320-byte idle stack overflows during the system-managed PM sweep with immediate logging; the FTM case requires 1024 bytes in `tests/ftm/boards/frdm_mcxe247.conf` | board or SoC defconfig, not a peripheral driver | open; case-local workaround |
-| `mcxa-suspend-to-idle-never-wakes` | all, MCXA only | on MCXA a `k_msleep()` that lands in `PM_STATE_SUSPEND_TO_IDLE` never returns; reproduced with a 20-line application that touches no peripheral under test. It is why the `sysmanaged` and `dpd` layers are recorded `blocked`, not `fail`, on every MCXA board | SoC PM glue, not a peripheral driver | open |
+| `mcxa-suspend-to-idle-never-wakes` | historical MCXA observations | missing post-transition output was previously recorded as a common symptom, not a proven universal cause across every MCXA revision or peripheral | SoC PM integration or observation path | superseded for the current LPDAC matrix by the specific findings above; all five MCXA boards now pass sysmanaged/DPD in job `2340053` |
 | `mcxa153-runtime-default-enable-hangs-at-boot` | ctimer, a153 only | the `runtime` and `system` layers hang before suite setup with `CONFIG_PM_DEVICE_RUNTIME_DEFAULT_ENABLE`; the `device` layer passes | unattributed | open |
 
 ## What `fixed` means, and which tree it is fixed in
@@ -54,6 +61,12 @@ so does the commit message that fixes one.
 `lpadc-*` rows are verified by
 [lpadc.json](../results/lpadc.json).
 Its `zephyr` field identifies the revision; all six layers pass on `frdm_mcxn947/mcxn947/cpu0`.
+
+The [LPDAC record](../results/lpdac.json) identifies tested Zephyr
+`111a15cede87ac626e1fe1379fa6003add219061` and harness
+`4f74554b5a97ae45c76986cd3d9cae3ece3ba9e0`. All 48 board/layer pairs pass
+with matching compiled/captured image identities and complete UART summaries.
+That is evidence for this pinned matrix, not for uncommitted local changes.
 
 So a failing layer is not by itself evidence of a new defect. Read the record's `zephyr` field
 first: a verdict is only about the commit recorded beside it.
@@ -64,8 +77,10 @@ first: a verdict is only about the commit recorded beside it.
 shared power-domain plumbing, and reach every board whose devicetree has a
 `power-domain-soc-state-change` node.
 
-`mcxa-suspend-to-idle-never-wakes` is an environment defect. It blocks two layers on a whole family
-and says nothing about the peripheral, which is why the record distinguishes `blocked` from `fail`.
+The historical `mcxa-suspend-to-idle-never-wakes` symptom had target-specific
+timer, wakeup-delay, UART-domain and shared-pad reporting causes. The current
+LPDAC result verifies those targets; it does not certify every MCXA peripheral
+or derivative. Pre-execution station failures still provide no driver verdict.
 
 ## VREF replay and runtime contract
 

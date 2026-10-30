@@ -22,6 +22,13 @@ transition behaves. A failing layer is a finding, not a broken harness.
 
 What it has found so far: [docs/findings.md](docs/findings.md).
 
+The latest [LPDAC result](results/lpdac.json) is Dapeng job
+[2340053](https://dapeng.nxp.com/app/request/2340053/testcases/): all 48
+board/layer configurations pass, covering eight boards and all six PM layers.
+Each retained result has matching compiled and captured RunIDs and a complete
+UART summary. See the [LPDAC case](tests/lpdac/README.md#results) for the matrix,
+coverage limits and immutable tested revisions.
+
 ## Prerequisites
 
 A **freestanding Zephyr application and Zephyr module**. It does not vendor Zephyr; inside an
@@ -53,6 +60,10 @@ west update
 This checks out the pinned Zephyr at `zephyr/` and this test module at
 `zephyr-device-pm-test/`. The same test directories and layer snippets apply.
 Using this entry point does not require adding or publishing a Zephyr submanifest.
+
+Hardware runners must initialize this manifest as a west workspace before using
+Zephyr extension commands. A plain Git checkout of this repository is not a
+substitute: scanner/build support alone does not establish hardware-run support.
 
 `west twister` needs one thing that `west build` does not. Twister decides whether a scenario's
 `required_snippets` exist *before* it configures anything, so it never sees the module this

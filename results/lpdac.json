@@ -1,13 +1,22 @@
 {
-  "run": "20261028-lpdac-dapeng",
-  "date": "2026-10-28",
+  "run": "20261030-lpdac-dapeng-job2340053",
+  "date": "2026-10-30",
   "case": "lpdac",
   "where": "dapeng",
-  "zephyr": "485d4c828b3be23170ffd84d681141990771e0d7",
-  "harness": "9ecad703bb3af088d9dc611852fc2f77b081b0fa",
+  "zephyr": "111a15cede87ac626e1fe1379fa6003add219061",
+  "harness": "4f74554b5a97ae45c76986cd3d9cae3ece3ba9e0",
   "targets": {
     "frdm_mcxa156/mcxa156": {
-      "job": "2337244",
+      "job": "2340053",
+      "station": "32602",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      },
       "build_layers": {
         "baseline": "pass",
         "device": "pass",
@@ -16,17 +25,57 @@
         "sysmanaged": "pass",
         "system": "pass"
       },
-      "layers": {
-        "baseline": "fail",
-        "device": "fail",
-        "dpd": "fail",
-        "runtime": "fail",
-        "sysmanaged": "fail",
-        "system": "fail"
+      "passed_tests": {
+        "baseline": 1,
+        "device": 4,
+        "dpd": 2,
+        "runtime": 3,
+        "sysmanaged": 2,
+        "system": 4
+      },
+      "task_ids": {
+        "baseline": 914229087,
+        "device": 914229095,
+        "dpd": 914229127,
+        "runtime": 914229103,
+        "sysmanaged": 914229119,
+        "system": 914229111
+      },
+      "run_ids": {
+        "baseline": "e486a467efd7a32cf4ef7740ae46845c",
+        "device": "257d07b725fb7f58e9f91310c91a7654",
+        "dpd": "d0c5c384f8bdaa3c2303a0e0ecd55a78",
+        "runtime": "8587a24428d8cb91ab113758a4f3c2ab",
+        "sysmanaged": "473b113baad2db76eedad975e5717c26",
+        "system": "f4b582721ed9008f564cd83c3f01b5e7"
+      },
+      "elf_sha256": {
+        "baseline": "0aa7ff54fd1ebb23b2662ea5586b42f41fd9296861709615c7605bbc6f6d02eb",
+        "device": "fdbdede6375333d71bdb0272d48e1035b0e50198a1c5fcfcc7f56867b77f2954",
+        "dpd": "e4c57046881d0c7e5fe7e18886c5b37c5f84e6dd1d4d7ac4c59c26350427612a",
+        "runtime": "e0a10dbaf2c5c2134206ef9d076735ad2c38abb5d15b478c66242c6898665270",
+        "sysmanaged": "182be7ab3270f65cc3076f0e0a950b0559b802e2ae0788a1c6dc8c68fe636c9b",
+        "system": "f43c4f5e43ded21c0b26c8c48e8b9a9727617cfb68d249a978f96104857dd142"
+      },
+      "serial_logs": {
+        "baseline": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229087/1793344530108/handler.log",
+        "device": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229095/1793343605651/handler.log",
+        "dpd": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229127/1793344481120/handler.log",
+        "runtime": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229103/1793345038008/handler.log",
+        "sysmanaged": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229119/1793344830671/handler.log",
+        "system": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229111/1793344506093/handler.log"
       }
     },
     "frdm_mcxa266/mcxa266": {
-      "job": "2337244",
+      "job": "2340053",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      },
       "build_layers": {
         "baseline": "pass",
         "device": "pass",
@@ -35,25 +84,66 @@
         "sysmanaged": "pass",
         "system": "pass"
       },
-      "layers": {
-        "baseline": "blocked",
-        "device": "blocked",
-        "dpd": "blocked",
-        "runtime": "blocked",
-        "sysmanaged": "blocked",
-        "system": "blocked"
+      "passed_tests": {
+        "baseline": 1,
+        "device": 4,
+        "dpd": 2,
+        "runtime": 3,
+        "sysmanaged": 2,
+        "system": 4
       },
-      "blocked_by": {
-        "baseline": "serial-device-error",
-        "device": "no_output",
-        "dpd": "no_output",
-        "runtime": "serial-device-error",
-        "sysmanaged": "serial-device-error",
-        "system": "serial-device-error"
+      "task_ids": {
+        "baseline": 914229089,
+        "device": 914229097,
+        "dpd": 914229129,
+        "runtime": 914229105,
+        "sysmanaged": 914229121,
+        "system": 914229113
+      },
+      "run_ids": {
+        "baseline": "e7a0449a9f7f5a9fc72afcf59b4b6555",
+        "device": "0956dd91e634f4f2258548d2ce42b490",
+        "dpd": "0e7e1e787c88e576f048314e5717a3aa",
+        "runtime": "4a94b64b72c0a54c8de7f5b0acae7896",
+        "sysmanaged": "65cb93e8cfbaa5955958d276ede24f8f",
+        "system": "40663322757112edd0e723786214aa4a"
+      },
+      "elf_sha256": {
+        "baseline": "178aec14a30eb7bf2c17e847e44d68f24474de29f2032aa7c59e832a4297627f",
+        "device": "e737f35ab0bd0d1437eecfb49482ecbbeea7eff489e16a0e3d750f7e20dacd2c",
+        "dpd": "818f5ff92a4687bb15e09676236eff552062dddbf9e517bc629a77ec411c9a51",
+        "runtime": "63f5bddc3fdc44c68157ebd08629d43d83659c7595e98f07aadf4ad7992077ec",
+        "sysmanaged": "fea5f789be02f56d78969ff6e54c4b0f6c6253964fe835e78af2948fc2db2c31",
+        "system": "11fcc5144e1c65dc4a477fe5f0c9b540380aff1dba8f979d347f01a0673af12b"
+      },
+      "serial_logs": {
+        "baseline": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229089/1793343707725/handler.log",
+        "device": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229097/1793343728682/handler.log",
+        "dpd": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229129/1793343962743/handler.log",
+        "runtime": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229105/1793343920712/handler.log",
+        "sysmanaged": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229121/1793343948734/handler.log",
+        "system": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229113/1793343935722/handler.log"
+      },
+      "stations": {
+        "baseline": "178512",
+        "device": "178857",
+        "dpd": "178857",
+        "runtime": "178512",
+        "sysmanaged": "178512",
+        "system": "178857"
       }
     },
     "frdm_mcxa346/mcxa346": {
-      "job": "2337244",
+      "job": "2340053",
+      "station": "154585",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      },
       "build_layers": {
         "baseline": "pass",
         "device": "pass",
@@ -62,25 +152,58 @@
         "sysmanaged": "pass",
         "system": "pass"
       },
-      "layers": {
-        "baseline": "blocked",
-        "device": "blocked",
-        "dpd": "blocked",
-        "runtime": "blocked",
-        "sysmanaged": "blocked",
-        "system": "blocked"
+      "passed_tests": {
+        "baseline": 1,
+        "device": 4,
+        "dpd": 2,
+        "runtime": 3,
+        "sysmanaged": 2,
+        "system": 4
       },
-      "blocked_by": {
-        "baseline": "no_output",
-        "device": "no_output",
-        "dpd": "no_output",
-        "runtime": "no_output",
-        "sysmanaged": "no_output",
-        "system": "no_output"
+      "task_ids": {
+        "baseline": 914229090,
+        "device": 914229098,
+        "dpd": 914229130,
+        "runtime": 914229106,
+        "sysmanaged": 914229122,
+        "system": 914229114
+      },
+      "run_ids": {
+        "baseline": "aaa3421a4e63471563aac50215edea08",
+        "device": "ae5c3f6ba3592dc03b5d2f58fc0cdd74",
+        "dpd": "fcb26c629da72114c1d99c44b1ae1ab0",
+        "runtime": "a8b06d5cc9d35720ce24f790e8a796c3",
+        "sysmanaged": "1f6784b69a4ab9cae22d0da92909c638",
+        "system": "d7e8acc343d4035390779466c85a1e5c"
+      },
+      "elf_sha256": {
+        "baseline": "dc69583ac5d0944dd2c7e32dc0ec3e6385aa70e1598d384068136240d98aff61",
+        "device": "06b7438868d1aad9c4787969220b53d55e808f755070a4c99d875fb3305dc2c8",
+        "dpd": "984f4a3e89dcc28a5c45aea0d5bc346dcae41f9e0a5b0689c57e4c0088d830da",
+        "runtime": "87c544e65f93d9f03cea2edf72c91ee38ac94b39694c14bb587b3b179b2a32ca",
+        "sysmanaged": "9ba8bbef962fade58e20bf5e049e6df94c9c17a47ff1b51c253a99a3b0e45807",
+        "system": "c0333d93da07662295f2f542884b16d3162ac8ab7e2349497bb7ae883dd61caf"
+      },
+      "serial_logs": {
+        "baseline": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229090/1793357398415/handler.log",
+        "device": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229098/1793357465589/handler.log",
+        "dpd": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229130/1793357590292/handler.log",
+        "runtime": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229106/1793357494242/handler.log",
+        "sysmanaged": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229122/1793357558277/handler.log",
+        "system": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229114/1793357527262/handler.log"
       }
     },
     "frdm_mcxa366/mcxa366": {
-      "job": "2337244",
+      "job": "2340053",
+      "station": "177807",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      },
       "build_layers": {
         "baseline": "pass",
         "device": "pass",
@@ -89,25 +212,58 @@
         "sysmanaged": "pass",
         "system": "pass"
       },
-      "layers": {
-        "baseline": "blocked",
-        "device": "blocked",
-        "dpd": "blocked",
-        "runtime": "blocked",
-        "sysmanaged": "blocked",
-        "system": "blocked"
+      "passed_tests": {
+        "baseline": 1,
+        "device": 4,
+        "dpd": 2,
+        "runtime": 3,
+        "sysmanaged": 2,
+        "system": 4
       },
-      "blocked_by": {
-        "baseline": "no_output",
-        "device": "no_output",
-        "dpd": "no_output",
-        "runtime": "no_output",
-        "sysmanaged": "no_output",
-        "system": "no_output"
+      "task_ids": {
+        "baseline": 914229091,
+        "device": 914229099,
+        "dpd": 914229131,
+        "runtime": 914229107,
+        "sysmanaged": 914229123,
+        "system": 914229115
+      },
+      "run_ids": {
+        "baseline": "2074f5a2b6e3ff41868d29712930d236",
+        "device": "8d3f550f052f8c9f98f3fa5b8d76ce21",
+        "dpd": "6a3a97f2c157bddc5195f7f2fd994eea",
+        "runtime": "d181636fde2f3faa6ae30b50c2d3631d",
+        "sysmanaged": "28eb624a9db1d16eae1333fd153f7789",
+        "system": "57fff1789965a8caeefefbf570354ed0"
+      },
+      "elf_sha256": {
+        "baseline": "5a8bf277510b43def4d611967d055f1291aa25796730d89fdd7def5501502d24",
+        "device": "0616a9a3c33f3c06a7f98e59be09e0804f6bdc1407596123d6a2b0dee18d798b",
+        "dpd": "5316a9171f1604baecc1e102dd1ff814d0c07075db2cab2c0f5f5f654387cf7e",
+        "runtime": "b8eaa9d9556aed485b0a37ff855628586992d0f2a02f3a7fa2574005b43c4968",
+        "sysmanaged": "85d025573cc5aa8e37631d4e4ee03972037ab43c6657238a492837466c7433e2",
+        "system": "41e896ec572e78ec959bbce9019fd6dcdbb7e89438f754ccee6cf0ad88b7baf6"
+      },
+      "serial_logs": {
+        "baseline": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229091/1793344175881/handler.log",
+        "device": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229099/1793343970765/handler.log",
+        "dpd": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229131/1793344194893/handler.log",
+        "runtime": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229107/1793344115841/handler.log",
+        "sysmanaged": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229123/1793344154866/handler.log",
+        "system": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229115/1793344136856/handler.log"
       }
     },
     "frdm_mcxa577/mcxa577": {
-      "job": "2337244",
+      "job": "2340053",
+      "station": "270191",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      },
       "build_layers": {
         "baseline": "pass",
         "device": "pass",
@@ -116,26 +272,50 @@
         "sysmanaged": "pass",
         "system": "pass"
       },
-      "layers": {
-        "baseline": "blocked",
-        "device": "blocked",
-        "dpd": "blocked",
-        "runtime": "blocked",
-        "sysmanaged": "blocked",
-        "system": "blocked"
+      "passed_tests": {
+        "baseline": 1,
+        "device": 4,
+        "dpd": 2,
+        "runtime": 3,
+        "sysmanaged": 2,
+        "system": 4
       },
-      "blocked_by": {
-        "baseline": "no_output",
-        "device": "no_output",
-        "dpd": "no_output",
-        "runtime": "no_output",
-        "sysmanaged": "serial-monitor-error",
-        "system": "no_output"
+      "task_ids": {
+        "baseline": 914229086,
+        "device": 914229094,
+        "dpd": 914229126,
+        "runtime": 914229102,
+        "sysmanaged": 914229118,
+        "system": 914229110
+      },
+      "run_ids": {
+        "baseline": "4128b436b198415df9c199dc72fc2bbb",
+        "device": "95def073d586725c1f4192fcc358196b",
+        "dpd": "5260df5af87114c70abcb72ab0fc566d",
+        "runtime": "1dbabc464169be244250e4eb79a86790",
+        "sysmanaged": "55cbfb45439e23d64a80eb6be6511cdd",
+        "system": "7d4b4b654b24ba5e71bdc934386892bd"
+      },
+      "elf_sha256": {
+        "baseline": "03a7050a79f3d8f2496d5764d3f3860c663146de9a49a244c9cb8a80248021bf",
+        "device": "d41adcc293557c9499f68cb4fa8a256490e62bf85628f094e065e0daf70528d3",
+        "dpd": "c11f5a4475cfea6d909744f188f3540fd2963c27879d7893b8c87cc6cbf13979",
+        "runtime": "ccc084055938d5faf2d156462d655d2b3d81a2a3e250228ca67fe5eb37d13aeb",
+        "sysmanaged": "fc240608513ed2486a33e63540d05c8319b2eef95800979028b62b75167bbd64",
+        "system": "bced53fdfb2d0fe800fc814576181abc8834e6a36007c0dee9dbc6664e705bcf"
+      },
+      "serial_logs": {
+        "baseline": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229086/1793347300746/handler.log",
+        "device": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229094/1793347335826/handler.log",
+        "dpd": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229126/1793347426886/handler.log",
+        "runtime": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229102/1793347358842/handler.log",
+        "sysmanaged": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229118/1793347403871/handler.log",
+        "system": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229110/1793347380858/handler.log"
       }
     },
     "frdm_mcxn947/mcxn947/cpu0": {
-      "job": "2337244",
-      "build_layers": {
+      "job": "2340053",
+      "layers": {
         "baseline": "pass",
         "device": "pass",
         "dpd": "pass",
@@ -143,7 +323,7 @@
         "sysmanaged": "pass",
         "system": "pass"
       },
-      "layers": {
+      "build_layers": {
         "baseline": "pass",
         "device": "pass",
         "dpd": "pass",
@@ -153,43 +333,56 @@
       },
       "passed_tests": {
         "baseline": 1,
-        "device": 3,
+        "device": 4,
         "dpd": 2,
         "runtime": 3,
         "sysmanaged": 2,
-        "system": 3
-      }
-    },
-    "frdm_mcxn947/mcxn947/cpu0/qspi": {
-      "job": "2337244",
-      "build_layers": {
-        "baseline": "pass",
-        "device": "pass",
-        "dpd": "pass",
-        "runtime": "pass",
-        "sysmanaged": "pass",
-        "system": "pass"
+        "system": 4
       },
-      "layers": {
-        "baseline": "blocked",
-        "device": "blocked",
-        "dpd": "blocked",
-        "runtime": "blocked",
-        "sysmanaged": "blocked",
-        "system": "blocked"
+      "task_ids": {
+        "baseline": 914229088,
+        "device": 914229096,
+        "dpd": 914229128,
+        "runtime": 914229104,
+        "sysmanaged": 914229120,
+        "system": 914229112
       },
-      "blocked_by": {
-        "baseline": "no-matching-lpdac-run-log",
-        "device": "no-matching-lpdac-run-log",
-        "dpd": "uart-run-id-mismatch",
-        "runtime": "no-matching-lpdac-run-log",
-        "sysmanaged": "no-matching-lpdac-run-log",
-        "system": "no-matching-lpdac-run-log"
+      "run_ids": {
+        "baseline": "d072a5a16075b3ac16e2fdd704df4d69",
+        "device": "745f820c526c0c2823123bf9e4d3a9f8",
+        "dpd": "904201e711399c05d791b8a6103a7670",
+        "runtime": "a51e1fd6ee80dce18a7c4a0f1379c2ee",
+        "sysmanaged": "572f295c46bef0ead7bb4cbc67645c9d",
+        "system": "e5ff7497733a0ef0bcb95b77dac761f0"
+      },
+      "elf_sha256": {
+        "baseline": "86975e195505bbe83c61105b1cb8cd5d5db1359acffca3944c8060593ba62335",
+        "device": "f3a9b912c3a7990e67d28b9cc3b9164d4dc2c031ea245538077c942d424c7a56",
+        "dpd": "7a583cb40e9e6b38787388c0ec8c62b7a08d825f3472dbe9880ede6333a13231",
+        "runtime": "77e4ba06ae317745ed2b84f3d54f57aabacaf50234faa667f191d3e588d17245",
+        "sysmanaged": "4ca7355c06af33c0726aa8b99fc35d7b8aabb83750265dd7262ff09631ac7782",
+        "system": "bcb158852ce85fd97a5a7b66ee89e2948098589122a94e53f7f6e0ac1f2f6b90"
+      },
+      "serial_logs": {
+        "baseline": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229088/1793344215921/handler.log",
+        "device": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229096/1793344241941/handler.log",
+        "dpd": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229128/1793344351048/handler.log",
+        "runtime": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229104/1793344267956/handler.log",
+        "sysmanaged": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229120/1793344322820/handler.log",
+        "system": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229112/1793344295021/handler.log"
+      },
+      "stations": {
+        "baseline": "1166",
+        "device": "109309",
+        "dpd": "1166",
+        "runtime": "18591",
+        "sysmanaged": "131217",
+        "system": "193269"
       }
     },
     "mcx_n5xx_evk/mcxn547/cpu0": {
-      "job": "2337244",
-      "build_layers": {
+      "job": "2340053",
+      "layers": {
         "baseline": "pass",
         "device": "pass",
         "dpd": "pass",
@@ -197,36 +390,7 @@
         "sysmanaged": "pass",
         "system": "pass"
       },
-      "layers": {
-        "baseline": "blocked",
-        "device": "pass",
-        "dpd": "pass",
-        "runtime": "pass",
-        "sysmanaged": "pass",
-        "system": "pass"
-      },
-      "blocked_by": {
-        "baseline": "sdk-install-download-timeout"
-      },
-      "passed_tests": {
-        "device": 3,
-        "dpd": 2,
-        "runtime": 3,
-        "sysmanaged": 2,
-        "system": 3
-      }
-    },
-    "mcx_n9xx_evk/mcxn947/cpu0": {
-      "job": "2337244",
       "build_layers": {
-        "baseline": "pass",
-        "device": "pass",
-        "dpd": "pass",
-        "runtime": "pass",
-        "sysmanaged": "pass",
-        "system": "pass"
-      },
-      "layers": {
         "baseline": "pass",
         "device": "pass",
         "dpd": "pass",
@@ -236,15 +400,63 @@
       },
       "passed_tests": {
         "baseline": 1,
-        "device": 3,
+        "device": 4,
         "dpd": 2,
         "runtime": 3,
         "sysmanaged": 2,
-        "system": 3
+        "system": 4
+      },
+      "task_ids": {
+        "baseline": 914229085,
+        "device": 914229093,
+        "dpd": 914229125,
+        "runtime": 914229101,
+        "sysmanaged": 914229117,
+        "system": 914229109
+      },
+      "run_ids": {
+        "baseline": "2f40840ba594052b49d608f1d4a49b0d",
+        "device": "329d71ec373482b2351b27f1a31aae8a",
+        "dpd": "e8d45be178f32057e9e64f826862b20a",
+        "runtime": "5430df4c1ce7088153ed81bdf7e63f73",
+        "sysmanaged": "6afdefd829a64d70b81146f4c5bc10ed",
+        "system": "c3cea420d1545a62ed3fe1f08dc00ee4"
+      },
+      "elf_sha256": {
+        "baseline": "600d30be1aabe27a9a1eea8f48b353ade98ba2f2a74adf45aa78ed583afe7bcc",
+        "device": "b8baf7412fb70e6c0c8d971737bfe884c9ef9b545b5677efa1a1703172bc46d5",
+        "dpd": "ea26227d6382d13e2e9fc3c3e46595851fdb5d49f8dfdb384b7b47daf8e001f0",
+        "runtime": "ae325de95e24d57e678102546c1eba464342b6a8292b37b8996cdac012a40ed4",
+        "sysmanaged": "4182e1f49b385c58786ee75c45cc065eca985c4db88f623a9969c90d25d10afe",
+        "system": "8d3812f4d38f70a8edf7b6d4eed08301471af4c4930d8041c26ec4b5d305a222"
+      },
+      "serial_logs": {
+        "baseline": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229085/1793344375161/handler.log",
+        "device": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229093/1793344619162/handler.log",
+        "dpd": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229125/1793344590148/handler.log",
+        "runtime": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229101/1793344544119/handler.log",
+        "sysmanaged": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229117/1793344600154/handler.log",
+        "system": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229109/1793344566134/handler.log"
+      },
+      "stations": {
+        "baseline": "18912",
+        "device": "18912",
+        "dpd": "18912",
+        "runtime": "18912",
+        "sysmanaged": "18936",
+        "system": "18912"
       }
     },
-    "mcx_n9xx_evk/mcxn947/cpu0/qspi": {
-      "job": "2337244",
+    "mcx_n9xx_evk/mcxn947/cpu0": {
+      "job": "2340053",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      },
       "build_layers": {
         "baseline": "pass",
         "device": "pass",
@@ -253,32 +465,54 @@
         "sysmanaged": "pass",
         "system": "pass"
       },
-      "layers": {
-        "baseline": "blocked",
-        "device": "blocked",
-        "dpd": "blocked",
-        "runtime": "blocked",
-        "sysmanaged": "blocked",
-        "system": "blocked"
+      "passed_tests": {
+        "baseline": 1,
+        "device": 4,
+        "dpd": 2,
+        "runtime": 3,
+        "sysmanaged": 2,
+        "system": 4
       },
-      "blocked_by": {
-        "baseline": "no-matching-lpdac-run-log",
-        "device": "uart-run-id-mismatch",
-        "dpd": "uart-run-id-mismatch",
-        "runtime": "no-matching-lpdac-run-log",
-        "sysmanaged": "no-matching-lpdac-run-log",
-        "system": "uart-run-id-mismatch"
+      "task_ids": {
+        "baseline": 914229084,
+        "device": 914229092,
+        "dpd": 914229124,
+        "runtime": 914229100,
+        "sysmanaged": 914229116,
+        "system": 914229108
+      },
+      "run_ids": {
+        "baseline": "d128b0ddf3588cf699ecc91b2cb9a757",
+        "device": "fe0a662dd067f6370e08a09cd1622495",
+        "dpd": "37280262d0281831f58bf27697f10f8c",
+        "runtime": "9189de5c2ee8c5e70eab73d4e99076c3",
+        "sysmanaged": "4d5db07db3f3ba46be431032749c9ad4",
+        "system": "88687adababaf7608160b8ea7f422139"
+      },
+      "elf_sha256": {
+        "baseline": "b425bf3a190c57f2c05c1ab727e82f5cb8e4089e329881bcd6dfc202319368a1",
+        "device": "ffaea07fb4ac54c5b0ece66f99fadad4f978a6ed6f9e6d637f408bcd6fa19f7e",
+        "dpd": "db1f9661355bd6e603937eb46980337c6d129989f90e46eb8bd4147248e6f868",
+        "runtime": "271c43a65c169a5090e1aca2a0546caae59ba750500eede17b169ae679bb0000",
+        "sysmanaged": "402c4d6f381bd9e85789998baaec9bf7702044965f5d80584ce105e2e3d4baaf",
+        "system": "d1308652d9d924159fc829acc6db9ddc26b0397d7b1493633a3834f77b3c25dc"
+      },
+      "serial_logs": {
+        "baseline": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229084/1793344532125/handler.log",
+        "device": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229092/1793344558144/handler.log",
+        "dpd": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229124/1793344851305/handler.log",
+        "runtime": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229100/1793344798275/handler.log",
+        "sysmanaged": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229116/1793344823288/handler.log",
+        "system": "https://nl5-nxrm.sw.nxp.com/repository/Dapeng_Medium/artifacts/2340053/914229108/1793344817283/handler.log"
+      },
+      "stations": {
+        "baseline": "17002",
+        "device": "17004",
+        "dpd": "17004",
+        "runtime": "17004",
+        "sysmanaged": "17004",
+        "system": "17002"
       }
     }
-  },
-  "findings": [
-    {
-      "id": "lpdac-test-gcr-read-before-channel-setup",
-      "fix_verified": "no"
-    },
-    {
-      "id": "lpdac-runtime-boot-check-after-control",
-      "fix_verified": "no"
-    }
-  ]
+  }
 }

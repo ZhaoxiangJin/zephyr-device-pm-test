@@ -7,12 +7,9 @@
  * @file
  * @brief The device layer: the driver's PM callbacks, driven directly.
  *
- * Two tests, and they are two because they are about two different halves of the
- * callback. The first is the SUSPEND/RESUME round trip, which owns the output
- * buffer. The second is TURN_OFF/TURN_ON, which owns the register block -- and
- * since nothing in this layer really cut power to it, the block is cleared by hand
- * so that TURN_ON has something to restore. What a real power cycle does is asked
- * in src/test_lowpower.c under the dpd layer.
+ * SUSPEND/RESUME owns the output buffer; TURN_OFF/TURN_ON owns the register
+ * block. GCR is cleared by hand to exercise replay without a physical power cut.
+ * Both a driven output and a configured but idle DAC must retain their state.
  */
 
 #include <zephyr/pm/device.h>
@@ -36,6 +33,7 @@ ZTEST(lpdac_pm, test_device_suspend_resume)
 	zassert_ok(lpdac_write(LPDAC_MIDSCALE), "write failed");
 	zassert_true(lpdac_output_on(), "GCR[DACEN] clear while PM reports ACTIVE");
 	config = lpdac_gcr_config();
+	zassert_not_equal(config, 0U, "GCR carries no configuration after channel setup");
 
 	zassert_ok(pm_device_action_run(LPDAC_DEV, PM_DEVICE_ACTION_SUSPEND),
 		   "SUSPEND action rejected");
@@ -89,11 +87,14 @@ ZTEST(lpdac_pm, test_device_turn_on_rebuilds_the_register_block)
 	int turn_off_rc;
 	int turn_on_rc;
 	int resume_rc;
+	int off_setup_rc;
+	int off_write_rc;
 
 	zassert_pm_state(LPDAC_DEV, PM_DEVICE_STATE_ACTIVE);
 	zassert_ok(lpdac_setup(), "channel setup failed");
 	zassert_ok(lpdac_write(LPDAC_MIDSCALE), "write failed");
 	config = lpdac_gcr_config();
+	zassert_not_equal(config, 0U, "GCR carries no configuration after channel setup");
 
 	/* Collected in one go and asserted afterwards, so that a failure cannot hand
 	 * the next test a device the core still records as OFF.
@@ -103,6 +104,8 @@ ZTEST(lpdac_pm, test_device_turn_on_rebuilds_the_register_block)
 	config_clobbered = lpdac_gcr_config();
 
 	turn_off_rc = pm_device_action_run(LPDAC_DEV, PM_DEVICE_ACTION_TURN_OFF);
+	off_setup_rc = lpdac_setup();
+	off_write_rc = lpdac_write(LPDAC_MIDSCALE);
 
 	turn_on_rc = pm_device_action_run(LPDAC_DEV, PM_DEVICE_ACTION_TURN_ON);
 	config_after_turn_on = lpdac_gcr_config();
@@ -115,6 +118,9 @@ ZTEST(lpdac_pm, test_device_turn_on_rebuilds_the_register_block)
 
 	zassert_ok(suspend_rc, "SUSPEND rejected (%d)", suspend_rc);
 	zassert_ok(turn_off_rc, "TURN_OFF rejected (%d)", turn_off_rc);
+	zassert_equal(off_setup_rc, -EBUSY, "channel setup while OFF returned %d",
+		      off_setup_rc);
+	zassert_equal(off_write_rc, -EBUSY, "write while OFF returned %d", off_write_rc);
 	zassert_ok(turn_on_rc, "TURN_ON rejected (%d)", turn_on_rc);
 	zassert_ok(resume_rc, "RESUME rejected (%d)", resume_rc);
 	zassert_pm_state(LPDAC_DEV, PM_DEVICE_STATE_ACTIVE);
@@ -136,4 +142,41 @@ ZTEST(lpdac_pm, test_device_turn_on_rebuilds_the_register_block)
 	 */
 	zassert_false(on_after_turn_on, "TURN_ON left the output buffer on");
 	zassert_true(on_after_resume, "RESUME did not put the output buffer back");
+}
+
+ZTEST(lpdac_pm, test_device_configured_idle_stays_idle)
+{
+	uint32_t config;
+
+	zassert_pm_state(LPDAC_DEV, PM_DEVICE_STATE_ACTIVE);
+	zassert_ok(lpdac_setup(), "channel setup failed");
+	config = lpdac_gcr_config();
+	zassert_not_equal(config, 0U, "GCR carries no configuration after channel setup");
+	zassert_false(lpdac_output_on(), "channel setup enabled an unwritten output");
+
+	zassert_ok(pm_device_action_run(LPDAC_DEV, PM_DEVICE_ACTION_SUSPEND),
+		   "SUSPEND rejected");
+	zassert_ok(pm_device_action_run(LPDAC_DEV, PM_DEVICE_ACTION_RESUME),
+		   "RESUME rejected");
+	zassert_false(lpdac_output_on(), "RESUME enabled an unwritten output");
+	zassert_equal(lpdac_gcr_config(), config, "RESUME changed idle configuration");
+
+	zassert_ok(pm_device_action_run(LPDAC_DEV, PM_DEVICE_ACTION_SUSPEND),
+		   "second SUSPEND rejected");
+	lpdac_gcr_clobber();
+	zassert_not_equal(lpdac_gcr_config(), config, "GCR clobber did not take");
+	zassert_ok(pm_device_action_run(LPDAC_DEV, PM_DEVICE_ACTION_TURN_OFF),
+		   "TURN_OFF rejected");
+	zassert_pm_state(LPDAC_DEV, PM_DEVICE_STATE_OFF);
+	zassert_ok(pm_device_action_run(LPDAC_DEV, PM_DEVICE_ACTION_TURN_ON),
+		   "TURN_ON rejected");
+	zassert_pm_state(LPDAC_DEV, PM_DEVICE_STATE_SUSPENDED);
+	zassert_equal(lpdac_gcr_config(), config, "TURN_ON did not replay idle configuration");
+	zassert_false(lpdac_output_on(), "TURN_ON enabled an unwritten output");
+
+	zassert_ok(pm_device_action_run(LPDAC_DEV, PM_DEVICE_ACTION_RESUME),
+		   "RESUME after TURN_ON rejected");
+	zassert_pm_state(LPDAC_DEV, PM_DEVICE_STATE_ACTIVE);
+	zassert_equal(lpdac_gcr_config(), config, "RESUME changed replayed configuration");
+	zassert_false(lpdac_output_on(), "RESUME after TURN_ON enabled an unwritten output");
 }

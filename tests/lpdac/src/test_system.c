@@ -84,6 +84,8 @@ ZTEST(lpdac_pm, test_system_constraint_covers_the_declared_states)
 	unsigned int after_put;
 	int setup_rc;
 	int write_rc;
+	int repeat_write_rc;
+	int put_rc;
 	bool on;
 
 	pm_test_console_quiesce();
@@ -96,6 +98,7 @@ ZTEST(lpdac_pm, test_system_constraint_covers_the_declared_states)
 	after_setup = locked_states();
 
 	write_rc = lpdac_write(LPDAC_MIDSCALE);
+	repeat_write_rc = lpdac_write(LPDAC_MIDSCALE - 1U);
 	on = lpdac_output_on();
 	declared = declared_states();
 	mismatch = constraint_mismatch();
@@ -103,7 +106,7 @@ ZTEST(lpdac_pm, test_system_constraint_covers_the_declared_states)
 	/* Released before anything is asserted: a failure must not leave a lock behind,
 	 * which would silently block those states for the rest of the run.
 	 */
-	(void)pm_device_runtime_put(LPDAC_DEV);
+	put_rc = pm_device_runtime_put(LPDAC_DEV);
 
 	pm_test_console_quiesce();
 	after_put = locked_states();
@@ -112,6 +115,8 @@ ZTEST(lpdac_pm, test_system_constraint_covers_the_declared_states)
 		      before);
 	zassert_ok(setup_rc, "channel setup failed (%d)", setup_rc);
 	zassert_ok(write_rc, "write failed (%d)", write_rc);
+	zassert_ok(repeat_write_rc, "repeated write failed (%d)", repeat_write_rc);
+	zassert_ok(put_rc, "runtime_put failed (%d)", put_rc);
 	zassert_true(on, "GCR[DACEN] clear while a runtime reference was held");
 
 	zassert_equal(after_setup, 0U,
@@ -183,4 +188,35 @@ ZTEST(lpdac_pm, test_system_constraint_follows_the_output)
 		      after_resume, declared);
 	zassert_equal(at_end, 0U, "%u power state(s) leaked past the end of the test",
 		      at_end);
+}
+
+ZTEST(lpdac_pm, test_system_reconfigure_releases_constraint)
+{
+	unsigned int while_on;
+	unsigned int after_setup;
+	unsigned int at_end;
+	bool on_after_setup;
+	int setup_rc;
+	int put_rc;
+
+	pm_test_console_quiesce();
+	zassert_ok(pm_device_runtime_get(LPDAC_DEV), "runtime_get rejected");
+	zassert_ok(lpdac_setup(), "initial channel setup failed");
+	zassert_ok(lpdac_write(LPDAC_MIDSCALE), "initial write failed");
+	while_on = locked_states();
+
+	setup_rc = lpdac_setup();
+	on_after_setup = lpdac_output_on();
+	after_setup = locked_states();
+	put_rc = pm_device_runtime_put(LPDAC_DEV);
+	pm_test_console_quiesce();
+	at_end = locked_states();
+
+	zassert_true(while_on > 0U, "the initial output held no constraint");
+	zassert_ok(setup_rc, "reconfiguration failed (%d)", setup_rc);
+	zassert_false(on_after_setup, "reconfiguration left the output on");
+	zassert_equal(after_setup, 0U, "reconfiguration left %u state(s) locked",
+		      after_setup);
+	zassert_ok(put_rc, "runtime_put failed (%d)", put_rc);
+	zassert_equal(at_end, 0U, "%u state(s) locked after releasing the reference", at_end);
 }
