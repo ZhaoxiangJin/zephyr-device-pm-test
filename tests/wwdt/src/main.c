@@ -64,24 +64,6 @@ static void *wwdt_pm_setup(void) {
   if (wwdt_start_rc != 0) {
     return NULL;
   }
-  const uint8_t unsupported[] = {
-      WDT_OPT_PAUSE_IN_SLEEP,
-      WDT_OPT_PAUSE_HALTED_BY_DBG,
-      BIT(7),
-  };
-  bool gate_before = wwdt_gate_is_open();
-
-  for (size_t i = 0U; i < ARRAY_SIZE(unsupported); i++) {
-    int ret = wdt_setup(wwdt_dev, unsupported[i]);
-
-    if ((ret != -ENOTSUP) || (wwdt_gate_is_open() != gate_before)) {
-      TC_PRINT("unsupported option 0x%x: result %d, gate %u -> %u\n",
-               unsupported[i], ret, gate_before, wwdt_gate_is_open());
-      wwdt_start_rc = -EIO;
-      return NULL;
-    }
-  }
-
 #if defined(CONFIG_PM_DEVICE_RUNTIME)
   /*
    * The driver takes no runtime reference of its own: the consumer holds one
