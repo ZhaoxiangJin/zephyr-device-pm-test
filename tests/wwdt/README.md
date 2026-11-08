@@ -2,16 +2,16 @@
 
 MCXN/MCXA `nxp,lpc-wwdt` through `drivers/watchdog/wdt_mcux_wwdt.c`.
 The hardware assertions observe `wwdt0`; MCXA577 also instantiates `wwdt1` for
-multi-instance build coverage. Independent lock ownership is exercised by the
-in-tree QEMU driver tests, not claimed as WWDT1 hardware coverage here.
+multi-instance build coverage. This is not WWDT1 hardware or independent-lock
+coverage.
 
 ## Lifetime and observable state
 
 The watchdog starts once per image, in `WDT_FLAG_RESET_NONE` mode with a 10 s
 timeout. All idle tests run in suite setup before that start.
 The running suite holds its runtime reference until the terminal disable suite.
-Unsupported pause/debug
-options must return `-ENOTSUP` without opening a gated block.
+The shared running session uses options=0. Pause-option rejection is outside
+this case's scope; neither sleep-pause nor debugger-pause support is claimed.
 
 - Read the bus gate from SYSCON/MRCC, not from an unclocked WWDT.
 - Compare `MOD`, `TC`, `WINDOW` and `WARNINT` with status flags masked out.
@@ -26,7 +26,7 @@ options must return `-ENOTSUP` without opening a gated block.
 
 | Layer | Evidence |
 | --- | --- |
-| `baseline` | supported setup/feed work; unsupported options fail; no PM assumed |
+| `baseline` | supported setup/feed work; no PM assumed |
 | `device` | idle suspend/turn-on leave the gate closed, resume opens it; setup while inactive fails; running suspend is `-ENOTSUP`, repeated setup is `-EBUSY`; resume after disable cannot restart counting |
 | `runtime` | boot is inactive with the gate closed; get allows setup; a running final put is `-ENOTSUP`; after disable put succeeds and a later get leaves the counter halted |
 | `system` | exact running constraints; rejected APIs preserve them; successful disable releases them |
@@ -62,12 +62,12 @@ controlled reset tests for early-feed and timeout behavior.
 
 Use a fresh boot for each new session. Disable does not make this driver's
 watchdog restartable, and a running watchdog cannot use an asynchronous final put.
-The reset-enabled upstream `test_08b_wdt_disable_check_not_firing` is enabled
-separately; this interrupt-only harness is not a substitute for that reset check.
+Separate reset-enabled tests are required to check actual watchdog reset behavior;
+this interrupt-only harness is not a substitute for those checks.
 
-## Latest result
+## Historical result
 
-All six layers passed on the 11 targets recorded in
+All six layers passed on the earlier revisions and 11 targets recorded in
 [results/wwdt.json](../../results/wwdt.json). The record identifies the tested
 Zephyr and harness revisions; this result does not extend the coverage limits
-above.
+above or qualify the source now pinned by this CI branch's west manifest.

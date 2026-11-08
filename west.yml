@@ -4,8 +4,8 @@
 manifest:
   projects:
     - name: zephyr
-      url: https://github.com/zephyrproject-rtos/zephyr.git
-      revision: ec98918869caeb2ddaef6e698f9ff36fb60a97ac
+      url: https://github.com/nxp-upstream/zephyr.git
+      revision: 458b0a56e7f9d8e517a348affb9192c27f2b72a5
       path: zephyr
       import: true
   self:
