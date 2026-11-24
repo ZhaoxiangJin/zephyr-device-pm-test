@@ -9,17 +9,17 @@ transition behaves. A failing layer is a finding, not a broken harness.
 
 | Case | IP | Driver under test |
 | --- | --- | --- |
-| [tests/ctimer](tests/ctimer) | CTIMER | `drivers/counter/counter_mcux_ctimer.c` |
-| [tests/freqme](tests/freqme) | FREQME | `drivers/clock_monitor/clock_monitor_nxp_freqme.c` |
-| [tests/ftm](tests/ftm) | FTM | `drivers/pwm/pwm_mcux_ftm.c` |
-| [tests/lpadc](tests/lpadc) | LPADC | `drivers/adc/adc_mcux_lpadc.c` |
-| [tests/lpcmp](tests/lpcmp) | LPCMP | `drivers/comparator/comparator_nxp_lpcmp.c` |
-| [tests/lpdac](tests/lpdac) | LPDAC | `drivers/dac/dac_mcux_lpdac.c` |
-| [tests/mrt](tests/mrt) | MRT | `drivers/counter/counter_nxp_mrt.c` |
-| [tests/port](tests/port) | PORT pin-mux | `drivers/pinctrl/pinctrl_nxp_port.c` |
-| [tests/sctimer](tests/sctimer) | SCTimer | `drivers/pwm/pwm_mcux_sctimer.c` |
-| [tests/vref](tests/vref) | VREF | `drivers/regulator/regulator_nxp_vref.c` |
-| [tests/wwdt](tests/wwdt) | WWDT | `drivers/watchdog/wdt_mcux_wwdt.c` |
+| [tests/ctimer](tests/ctimer) | CTIMER ([latest result](results/ctimer.json)) | `drivers/counter/counter_mcux_ctimer.c` |
+| [tests/freqme](tests/freqme) | FREQME ([latest result](results/freqme.json)) | `drivers/clock_monitor/clock_monitor_nxp_freqme.c` |
+| [tests/ftm](tests/ftm) | FTM ([latest result](results/ftm.json)) | `drivers/pwm/pwm_mcux_ftm.c` |
+| [tests/lpadc](tests/lpadc) | LPADC ([latest result](results/lpadc.json)) | `drivers/adc/adc_mcux_lpadc.c` |
+| [tests/lpcmp](tests/lpcmp) | LPCMP (no result recorded) | `drivers/comparator/comparator_nxp_lpcmp.c` |
+| [tests/lpdac](tests/lpdac) | LPDAC ([latest result](results/lpdac.json)) | `drivers/dac/dac_mcux_lpdac.c` |
+| [tests/mrt](tests/mrt) | MRT ([latest result](results/mrt.json)) | `drivers/counter/counter_nxp_mrt.c` |
+| [tests/port](tests/port) | PORT pin-mux ([latest result](results/port.json)) | `drivers/pinctrl/pinctrl_nxp_port.c` |
+| [tests/sctimer](tests/sctimer) | SCTimer ([latest result](results/sctimer.json)) | `drivers/pwm/pwm_mcux_sctimer.c` |
+| [tests/vref](tests/vref) | VREF ([latest result](results/vref.json)) | `drivers/regulator/regulator_nxp_vref.c` |
+| [tests/wwdt](tests/wwdt) | WWDT ([latest result](results/wwdt.json)) | `drivers/watchdog/wdt_mcux_wwdt.c` |
 
 What it has found so far: [docs/findings.md](docs/findings.md).
 

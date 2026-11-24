@@ -84,16 +84,11 @@ ZTEST(sctimer_pm, test_system_constraint_covers_the_declared_states)
 		unsigned int mismatch;
 		unsigned int after_put;
 		int configure_rc;
+		int put_rc;
 
 		declared = declared_states(c->dev);
-		if (declared == 0U) {
-			/* No state is declared to stop this instance, so there is no
-			 * constraint to observe. Said rather than passed quietly.
-			 */
-			TC_PRINT("%s: declares no disabling power state, nothing asserted\n",
-				 c->dev->name);
-			continue;
-		}
+		zassert_not_equal(declared, 0U, "%s: no disabling states reached the node",
+				  c->dev->name);
 
 		pm_test_console_quiesce();
 		before = locked_states();
@@ -108,7 +103,7 @@ ZTEST(sctimer_pm, test_system_constraint_covers_the_declared_states)
 		/* Released before anything is asserted: a failure must not leave a lock
 		 * behind, which would silently block those states for the rest of the run.
 		 */
-		(void)pm_device_runtime_put(c->dev);
+		put_rc = pm_device_runtime_put(c->dev);
 
 		pm_test_console_quiesce();
 		after_put = locked_states();
@@ -117,6 +112,7 @@ ZTEST(sctimer_pm, test_system_constraint_covers_the_declared_states)
 			      c->dev->name, before);
 		zassert_ok(configure_rc, "%s: pwm_set_cycles() failed (%d)", c->dev->name,
 			   configure_rc);
+		zassert_ok(put_rc, "%s: runtime_put failed", c->dev->name);
 
 		zassert_equal(while_driving, declared,
 			      "%s: %u state(s) locked while driving an output, %u declared",
@@ -139,14 +135,13 @@ ZTEST(sctimer_pm, test_system_constraint_follows_the_output)
 		unsigned int after_resume;
 		unsigned int at_end;
 		int configure_rc;
+		int put_rc;
+		int final_put_rc;
 		bool toggling_after_resume;
 
 		declared = declared_states(c->dev);
-		if (declared == 0U) {
-			TC_PRINT("%s: declares no disabling power state, nothing asserted\n",
-				 c->dev->name);
-			continue;
-		}
+		zassert_not_equal(declared, 0U, "%s: no disabling states reached the node",
+				  c->dev->name);
 
 		pm_test_console_quiesce();
 
@@ -158,7 +153,7 @@ ZTEST(sctimer_pm, test_system_constraint_follows_the_output)
 		/* The last reference goes away, so the driver suspends and the output is
 		 * parked -- and with it the reason for the lock.
 		 */
-		(void)pm_device_runtime_put(c->dev);
+		put_rc = pm_device_runtime_put(c->dev);
 		pm_test_console_quiesce();
 		while_suspended = locked_states();
 
@@ -172,12 +167,14 @@ ZTEST(sctimer_pm, test_system_constraint_follows_the_output)
 		toggling_after_resume = sctimer_output_toggles(c);
 		after_resume = locked_states();
 
-		(void)pm_device_runtime_put(c->dev);
+		final_put_rc = pm_device_runtime_put(c->dev);
 		pm_test_console_quiesce();
 		at_end = locked_states();
 
 		zassert_ok(configure_rc, "%s: pwm_set_cycles() failed (%d)", c->dev->name,
 			   configure_rc);
+		zassert_ok(put_rc, "%s: first runtime_put failed", c->dev->name);
+		zassert_ok(final_put_rc, "%s: final runtime_put failed", c->dev->name);
 		zassert_equal(while_driving, declared,
 			      "%s: %u state(s) locked while driving an output, %u declared",
 			      c->dev->name, while_driving, declared);

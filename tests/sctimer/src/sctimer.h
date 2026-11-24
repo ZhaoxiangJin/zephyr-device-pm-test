@@ -152,6 +152,17 @@ bool sctimer_advances(const struct sctimer_case *c);
 /** Whether the output is actually toggling, from repeated reads of OUTPUT. */
 bool sctimer_output_toggles(const struct sctimer_case *c);
 
+/** Whether the output stays at the requested level throughout repeated sampling. */
+bool sctimer_output_stays(const struct sctimer_case *c, bool high);
+
+#if defined(CONFIG_PM_TEST_LAYER_RUNTIME)
+/** Save boot observations before any test can take a consumer reference. */
+int sctimer_runtime_snapshot_boot(void);
+
+/** Release the reporting console reference after the runtime suite. */
+void sctimer_runtime_release_console(void);
+#endif
+
 /** Configure the channel under test. Returns what pwm_set_cycles() returned. */
 int sctimer_configure(const struct sctimer_case *c);
 

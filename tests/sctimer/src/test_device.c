@@ -135,6 +135,7 @@ ZTEST(sctimer_pm, test_device_turn_on_replays_the_channel)
 		int turn_off_rc;
 		int turn_on_rc;
 		int resume_rc;
+		int rejected_rc;
 
 		if (!sctimer_gate_observable(c)) {
 			TC_PRINT("%s: clock gate not observable, nothing asserted\n",
@@ -146,28 +147,28 @@ ZTEST(sctimer_pm, test_device_turn_on_replays_the_channel)
 		zassert_ok(sctimer_configure(c), "%s: pwm_set_cycles() failed", c->dev->name);
 		sctimer_image_read(c, &configured);
 
-		/*
-		 * Collected in one go and asserted afterwards, so that a failure cannot
-		 * hand the next test a device the core still records as OFF.
-		 */
 		suspend_rc = pm_device_action_run(c->dev, PM_DEVICE_ACTION_SUSPEND);
-
+		zassert_ok(suspend_rc, "%s: SUSPEND rejected (%d)", c->dev->name, suspend_rc);
+		rejected_rc = pwm_set_cycles(c->dev, SCTIMER_PWM_CHANNEL, 2U * SCTIMER_PWM_PERIOD,
+					     SCTIMER_PWM_PULSE, PWM_POLARITY_INVERTED);
 		sctimer_clobber(c, &clobbered);
 
 		turn_off_rc = pm_device_action_run(c->dev, PM_DEVICE_ACTION_TURN_OFF);
+		zassert_ok(turn_off_rc, "%s: TURN_OFF rejected (%d)", c->dev->name, turn_off_rc);
 
 		turn_on_rc = pm_device_action_run(c->dev, PM_DEVICE_ACTION_TURN_ON);
+		zassert_ok(turn_on_rc, "%s: TURN_ON rejected (%d)", c->dev->name, turn_on_rc);
+		zassert_pm_state(c->dev, PM_DEVICE_STATE_SUSPENDED);
 		gate_after_turn_on = sctimer_gate_is_open(c);
 		sctimer_peek_gated(c, &after_turn_on);
 
 		resume_rc = pm_device_action_run(c->dev, PM_DEVICE_ACTION_RESUME);
+		zassert_ok(resume_rc, "%s: RESUME rejected (%d)", c->dev->name, resume_rc);
 		sctimer_image_read(c, &after_resume);
 		sctimer_report_hw(c, "after-resume");
 
-		zassert_ok(suspend_rc, "%s: SUSPEND rejected (%d)", c->dev->name, suspend_rc);
-		zassert_ok(turn_off_rc, "%s: TURN_OFF rejected (%d)", c->dev->name, turn_off_rc);
-		zassert_ok(turn_on_rc, "%s: TURN_ON rejected (%d)", c->dev->name, turn_on_rc);
-		zassert_ok(resume_rc, "%s: RESUME rejected (%d)", c->dev->name, resume_rc);
+		zassert_equal(rejected_rc, -EBUSY, "%s: suspended request was not refused",
+			      c->dev->name);
 		zassert_pm_state(c->dev, PM_DEVICE_STATE_ACTIVE);
 
 		/* Before anything else: a clobber that did not take would make the claims
@@ -219,5 +220,49 @@ ZTEST(sctimer_pm, test_device_turn_on_replays_the_channel)
 		zassert_ok(sctimer_configure(c),
 			   "%s: the channel cannot be reconfigured after the round trip",
 			   c->dev->name);
+	}
+}
+
+ZTEST(sctimer_pm, test_device_inverted_and_zero_pulse_replay)
+{
+	SCTIMER_FOREACH_CASE(c) {
+		for (unsigned int zero = 0U; zero < 2U; zero++) {
+			struct sctimer_image configured;
+			struct sctimer_image clobbered;
+			struct sctimer_image resumed;
+			struct sctimer_peek rebuilt;
+			uint32_t pulse = zero != 0U ? 0U : SCTIMER_PWM_PULSE;
+			bool output_ok;
+
+			zassert_ok(pwm_set_cycles(c->dev, SCTIMER_PWM_CHANNEL, SCTIMER_PWM_PERIOD,
+						  pulse, PWM_POLARITY_INVERTED));
+			sctimer_image_read(c, &configured);
+			zassert_ok(pm_device_action_run(c->dev, PM_DEVICE_ACTION_SUSPEND));
+			zassert_false(sctimer_gate_is_open(c));
+			sctimer_peek_gated(c, &rebuilt);
+			zassert_false(rebuilt.running);
+			zassert_true(rebuilt.output_high, "%s: inverted output not parked high",
+				     c->dev->name);
+			sctimer_clobber(c, &clobbered);
+			zassert_true(sctimer_image_is_clear(&clobbered));
+			zassert_ok(pm_device_action_run(c->dev, PM_DEVICE_ACTION_TURN_OFF));
+			zassert_ok(pm_device_action_run(c->dev, PM_DEVICE_ACTION_TURN_ON));
+			zassert_false(sctimer_gate_is_open(c));
+			sctimer_peek_gated(c, &rebuilt);
+			zassert_false(rebuilt.running, "%s: replay started the counter",
+				      c->dev->name);
+			zassert_true(rebuilt.output_high, "%s: replay lost inactive polarity",
+				     c->dev->name);
+			zassert_true(sctimer_image_equal(&rebuilt.image, &configured),
+				     "%s: replay changed pulse %u", c->dev->name, pulse);
+			zassert_ok(pm_device_action_run(c->dev, PM_DEVICE_ACTION_RESUME));
+			sctimer_image_read(c, &resumed);
+			output_ok = zero != 0U ? sctimer_output_stays(c, true) :
+						sctimer_output_toggles(c);
+			zassert_true(sctimer_image_equal(&resumed, &configured));
+			zassert_true(output_ok, "%s: pulse %u did not survive replay",
+				     c->dev->name, pulse);
+		}
+		zassert_ok(sctimer_configure(c));
 	}
 }

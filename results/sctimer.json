@@ -1,0 +1,21 @@
+{
+  "run": "20261123-sctimer-dapeng-job2373147",
+  "date": "2026-11-23",
+  "case": "sctimer",
+  "where": "dapeng",
+  "zephyr": "9ec5b081ad265df1c050e9bcfe9a9e23d1e82d01",
+  "harness": "50af5a4deb75883a849b970b6b45ceef59439201",
+  "targets": {
+    "frdm_mcxn947/mcxn947/cpu0": {
+      "job": "2373147",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      }
+    }
+  }
+}

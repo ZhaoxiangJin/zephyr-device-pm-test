@@ -12,6 +12,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/tc_util.h>
+#include <zephyr/ztest.h>
 
 #include <zephyr/dt-bindings/clock/mcux_lpc_syscon_clock.h>
 #include <fsl_clock.h>
@@ -66,6 +67,9 @@ static const clock_ip_name_t sct_clocks[] = SCT_CLOCKS;
 
 static SCT_Type *sctimer_base(const struct sctimer_case *c)
 {
+	zassert_true(sctimer_gate_is_open(c),
+		     "%s: refusing SCT register access while its clock is gated", c->dev->name);
+
 	return (SCT_Type *)c->base;
 }
 
@@ -142,13 +146,14 @@ bool sctimer_image_is_clear(const struct sctimer_image *img)
 
 void sctimer_clobber(const struct sctimer_case *c, struct sctimer_image *clobbered)
 {
-	SCT_Type *base = sctimer_base(c);
+	SCT_Type *base;
 	bool was_open = sctimer_gate_is_open(c);
 
 	/* The registers cannot be written while the block is unclocked, and this is
 	 * called from a layer where the driver has already gated it.
 	 */
 	sctimer_gate_open(c);
+	base = sctimer_base(c);
 
 	base->MATCHREL[SCTIMER_MATCH_PERIOD] = 0U;
 	base->MATCHREL[SCTIMER_MATCH_PULSE] = 0U;
@@ -192,7 +197,6 @@ bool sctimer_running(const struct sctimer_case *c)
 	return (sctimer_base(c)->CTRL & SCT_CTRL_HALT_L_MASK) == 0U;
 }
 
-
 bool sctimer_output_is_high(const struct sctimer_case *c)
 {
 	return (sctimer_base(c)->OUTPUT & BIT(SCTIMER_PWM_CHANNEL)) != 0U;
@@ -203,15 +207,13 @@ bool sctimer_advances(const struct sctimer_case *c)
 	SCT_Type *base = sctimer_base(c);
 	uint32_t first = base->COUNT;
 
-	/*
-	 * Busy-waited rather than slept: the counter is clocked from the bus clock,
-	 * so this is thousands of ticks even at the slowest bus frequency any board
-	 * here runs, and a sleep would let the idle thread enter a power state in the
-	 * layers that have one.
-	 */
-	k_busy_wait(200);
+	for (unsigned int sample = 0U; sample < SCTIMER_PWM_PERIOD; sample++) {
+		if (base->COUNT != first) {
+			return true;
+		}
+	}
 
-	return base->COUNT != first;
+	return false;
 }
 
 /*
@@ -240,6 +242,29 @@ bool sctimer_output_toggles(const struct sctimer_case *c)
 	return false;
 }
 
+bool sctimer_output_stays(const struct sctimer_case *c, bool high)
+{
+	bool settled = false;
+
+	/* MATCHREL updates take effect at a period boundary. */
+	for (unsigned int sample = 0U; sample < 4U * SCTIMER_PWM_PERIOD; sample++) {
+		if (sctimer_output_is_high(c) == high) {
+			settled = true;
+			break;
+		}
+	}
+	if (!settled) {
+		return false;
+	}
+	for (unsigned int sample = 0U; sample < 4U * SCTIMER_PWM_PERIOD; sample++) {
+		if (sctimer_output_is_high(c) != high) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 int sctimer_configure(const struct sctimer_case *c)
 {
 	return pwm_set_cycles(c->dev, SCTIMER_PWM_CHANNEL, SCTIMER_PWM_PERIOD,
@@ -263,8 +288,12 @@ void sctimer_report_configuration(void)
 
 	SCTIMER_FOREACH_CASE(c) {
 		uint64_t cycles = 0;
+		int err = pwm_get_cycles_per_sec(c->dev, SCTIMER_PWM_CHANNEL, &cycles);
 
-		(void)pwm_get_cycles_per_sec(c->dev, SCTIMER_PWM_CHANNEL, &cycles);
+		if (err != 0) {
+			TC_PRINT("  %s: clock rate query failed (%d)\n", c->dev->name, err);
+			continue;
+		}
 		TC_PRINT("  %s: @ %p, %llu Hz, channel %u, gate %s\n", c->dev->name,
 			 (void *)c->base, cycles, (unsigned int)SCTIMER_PWM_CHANNEL,
 			 sctimer_gate_observable(c) ? "observable"
