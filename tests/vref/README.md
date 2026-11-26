@@ -25,6 +25,9 @@ timer runs before VREF's resume callback uses its startup delays. This requires
 a Zephyr revision providing that experimental option. The baseline, device and
 runtime scenarios disable it because they do not enable system PM.
 
+The main stack accommodates immediate result logging, including the UART
+runtime-PM and power-domain callbacks used by the log backend.
+
 ## Observable evidence
 
 - CSR configuration bits must match the DT options exactly, including options
