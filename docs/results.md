@@ -25,9 +25,25 @@ such. A single layer that did reach the board but could not return a verdict the
 outside the driver under test, is `--blocked-layer <layer>`: it was run, so `built` would
 understate it, and `fail` would blame the driver for someone else's defect.
 
-### A run on the farm
+### Automatic farm build/run reports
 
-A station flashes an image; it does not run twister. So build with `--build-only`, flash and capture
+Dapeng `build_run` jobs run Twister on the station. Use each task's final run
+`twister.json`, not its build-only report or initial scanner metadata. Reports
+from one campaign may be combined into one `testsuites` list only when their
+Zephyr and test-module revisions match. Pass the immutable compiled Zephyr
+revision with `--zephyr` and the pinned test-module revision with `--harness`;
+later local documentation edits are not the source that ran.
+
+Before collecting, check the UART source banner, layer, complete summary and
+expected cases. Match the UART RunID to `TC_RUNID` in the build's CMake cache
+or `-DTC_RUNID` in `twister.log`. The scanner's initial `configs.run_id` can
+differ from the compiled RunID and is not proof of image identity. Keep this
+audit and the original reports in campaign artifacts, outside `results/`.
+
+### Manual farm captures
+
+With `dapeng remote`, the station flashes an image and forwards its console.
+Build with `--build-only`, flash and capture
 per layer as [boards.md](boards.md) describes, and hand the captures back:
 
 ```sh
