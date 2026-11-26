@@ -31,7 +31,8 @@ repository in as a module itself, so `west build` needs no extra flag. The optio
 [west manifest](west.yml) pins the integrated Zephyr baseline and its modules for a standalone
 CI workspace.
 
-- Zephyr **v4.4.x** (developed against `4.4.99`).
+- A Zephyr revision with the driver and PM prerequisites of the selected case;
+  see its README and the tested revisions in `results/`.
 - The NXP HAL module (`hal_nxp`) from the Zephyr manifest.
 - A working Zephyr build environment (`west`, Zephyr SDK).
 
@@ -83,10 +84,11 @@ west twister -T zephyr-device-pm-test/tests -O /c/tw --all --ninja --short-build
 
 `-S <snippet>` selects the layer; omit it for `baseline`. The `system` layer's state list is
 per peripheral and comes from driver DTS constraints or the case's own overlay. If the case
-provides `constraints.overlay`, add `-- -DEXTRA_DTC_OVERLAY_FILE=constraints.overlay` for a
+provides `constraints.overlay`, add `-- '-DEXTRA_DTC_OVERLAY_FILE=constraints.overlay'` for a
 manual build; Twister configures this per case. The layers, and what each one proves, are in
 [docs/pm-layers.md](docs/pm-layers.md). On Windows both a short `-O` and
 `--short-build-path` are required — [docs/boards.md](docs/boards.md#windows-outdir) says why.
+Quote the whole CMake argument on PowerShell to keep the overlay filename intact.
 
 Tests are ztest suites, so twister reports per check rather than per image, and "not observable on
 this SoC" is a skip rather than a silent pass.

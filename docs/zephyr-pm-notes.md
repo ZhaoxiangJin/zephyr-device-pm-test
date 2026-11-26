@@ -2,8 +2,8 @@
 
 Configuration requirements for testing Zephyr device PM.
 
-Each is asserted at build time by `include/pm_test/layer.h`. If an assertion fired and sent you
-here, the paragraph below it is the reasoning.
+Layer premises are asserted at build time by `include/pm_test/layer.h`.
+The platform and reporting requirements below are additional case prerequisites.
 
 ## Runtime PM has to be *enabled*, not just compiled in
 
@@ -38,13 +38,54 @@ also has it set, even though there is no system PM and therefore no sweep at all
 Use `CONFIG_PM_TEST_LAYER_*` to select manual versus system-managed test steps.
 `CONFIG_PM_DEVICE_SYSTEM_MANAGED` alone does not distinguish them.
 
-## A power domain hands out `TURN_OFF`/`TURN_ON` only when it is itself swept
+## Runtime power-domain resume must power up its children
 
-The same applies to power domains built on `power-domain-soc-state-change`: the domain device gets
-its own `SUSPEND`/`RESUME` from the sweep, and that is what makes it hand its children
-`TURN_OFF`/`TURN_ON`. Under runtime PM the domain is never swept, so its children never see those
-actions.
+A runtime-suspended `power-domain-soc-state-change` domain can make
+`pm_device_driver_init()` leave a child OFF without calling its `TURN_ON`.
+Forwarding that action only during system-managed transitions then leaves the
+child unconfigured when its first runtime reference arrives.
 
-Two defects follow from this, both recorded in [findings.md](findings.md):
-`pd-soc-state-change-null-deref` and `pd-soc-state-change-no-turn-on-under-runtime-pm`. Neither is
-an NXP peripheral driver defect; both reach any board whose devicetree has such a node.
+In the Zephyr revision identified by the [VREF result](../results/vref.json),
+the domain's runtime `RESUME` forwards `TURN_ON` to its children. Its `SUSPEND`
+also checks for a NULL next system state before deciding whether to forward
+`TURN_OFF`. Those shared-domain fixes are prerequisites already present in
+the tested source, not changes introduced by the VREF test.
+The historical defects and revision-scoped status are in
+[findings.md](findings.md).
+
+## Resume delays need a running system timer
+
+When low-power entry stops or resets SysTick, a cycle-based `k_busy_wait()`
+cannot complete before the timer is restarted. The legacy PM resume order
+restores devices before `sys_clock_idle_exit()`. VREF's enabled-output
+`RESUME` needs a bandgap startup delay, so that ordering can prevent the
+system-managed or DPD transition from completing.
+
+The [VREF configuration](../tests/vref/prj.conf) enables
+`CONFIG_PM_EARLY_SYSTEM_TIMER_RESUME` for system-PM layers. In the tested
+source this orders SoC exit post-ops, system timer idle-exit, device resume,
+then PM exit notifications. Baseline, device and runtime scenarios override
+the option to `n` because they do not enable system PM.
+
+This option is experimental, not a driver-wide requirement to select
+unconditionally. Check that SoC post-ops and timer idle-exit do not depend
+on still-suspended devices; timer idle-exit can invoke timeout callbacks
+before device resume. Manual device/runtime operations with a running timer
+do not reproduce this ordering problem.
+
+## Result logging needs space on the reporting thread's stack
+
+With immediate logging and UART runtime PM, printing a result can include
+formatting, UART resume and power-domain child callbacks on the caller's
+stack. In the MCXA577 VREF system test, the main thread exhausted its
+1024-byte stack while printing a successful test result. Hardware reported
+`STKOF`, with PSP at its stack limit; the farm saw missing output and timed
+out. The test thread's stack was not the overflowing stack.
+
+VREF sets `CONFIG_MAIN_STACK_SIZE=2048`; the
+[latest result](../results/vref.json) verifies complete reporting with
+immediate logging and all PM assertions retained. Size the actual reporting
+thread, and check that the complete DPD working set still fits retained
+SRAM. Switching to deferred logging is not equivalent: after
+`CONFIG_ZTEST_NO_YIELD` ends the suite with interrupts locked, a deferred
+logger cannot finish reporting.

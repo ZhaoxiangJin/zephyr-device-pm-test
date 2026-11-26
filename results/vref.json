@@ -1,23 +1,65 @@
 {
-  "run": "20260916-vref-dapeng-pd-guard",
-  "date": "2026-09-16",
+  "run": "20261126-vref-dapeng-job2375822",
+  "date": "2026-11-26",
   "case": "vref",
   "where": "dapeng",
+  "zephyr": "51b010355282385f6c3b1a5c8a359a251711765b",
+  "harness": "a0bf2c3398ab43d6c82dbe535a97049089ba4e33",
   "targets": {
-    "frdm_mcxn947/mcxn947/cpu0": {
-      "job": "2309455",
-      "station": "1166@main",
+    "frdm_mcxa577/mcxa577": {
+      "job": "2375822",
       "layers": {
-        "runtime": "fail",
-        "system": "fail"
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      }
+    },
+    "frdm_mcxn236/mcxn236": {
+      "job": "2375822",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      }
+    },
+    "frdm_mcxn947/mcxn947/cpu0": {
+      "job": "2375822",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      }
+    },
+    "mcx_n5xx_evk/mcxn547/cpu0": {
+      "job": "2375822",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
+      }
+    },
+    "mcx_n9xx_evk/mcxn947/cpu0": {
+      "job": "2375822",
+      "layers": {
+        "baseline": "pass",
+        "device": "pass",
+        "dpd": "pass",
+        "runtime": "pass",
+        "sysmanaged": "pass",
+        "system": "pass"
       }
     }
-  },
-  "findings": [
-    {
-      "id": "vref-unconfigured-under-runtime-pm",
-      "summary": "Still open: with runtime device PM the vref block never receives its devicetree configuration.",
-      "fix_verified": "no"
-    }
-  ]
+  }
 }

@@ -27,6 +27,9 @@ runtime scenarios disable it because they do not enable system PM.
 
 The main stack accommodates immediate result logging, including the UART
 runtime-PM and power-domain callbacks used by the log backend.
+It is configured as `CONFIG_MAIN_STACK_SIZE=2048`. The timer-resume and
+reporting-stack requirements are explained in
+[Zephyr PM notes](../../docs/zephyr-pm-notes.md).
 
 ## Observable evidence
 
@@ -109,7 +112,7 @@ west build -b frdm_mcxa577 zephyr-device-pm-test/tests/vref \
 ```
 
 Select any other layer with its `pm-*` snippet. For the system layer also pass
-`-- -DEXTRA_DTC_OVERLAY_FILE=constraints.overlay`.
+`-- '-DEXTRA_DTC_OVERLAY_FILE=constraints.overlay'`.
 
 Twister needs the module for snippet discovery:
 
@@ -126,17 +129,22 @@ not establish a pass for the current implementation.
 
 ## Verification status
 
-Hardware execution, including DPD, is pending. See the driver's
-`tests/drivers/regulator/nxp_vref_pm` for hardware-independent replay and
-runtime-reference tests. RAM-register tests exercise driver behavior, not
-bandgap settling or board power retention.
+The [latest result](../../results/vref.json) records Dapeng job `2375822`
+on 2026-11-26. Compiled Zephyr `51b010355282` is a CI-only child of reviewed
+source `db4cda666e24`; the only added file pins test module `a0bf2c3398ab`.
+All 30 builds and hardware suites passed with matching compiled/captured
+RunIDs, complete summaries and no skipped checks:
 
-Local results for this revision:
+| Target | baseline | device | runtime | system | sysmanaged | dpd |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frdm_mcxn947/mcxn947/cpu0` | pass | pass | pass | pass | pass | pass |
+| `frdm_mcxn236/mcxn236` | pass | pass | pass | pass | pass | pass |
+| `mcx_n9xx_evk/mcxn947/cpu0` | pass | pass | pass | pass | pass | pass |
+| `mcx_n5xx_evk/mcxn547/cpu0` | pass | pass | pass | pass | pass | pass |
+| `frdm_mcxa577/mcxa577` | pass | pass | pass | pass | pass | pass |
 
-- The corrected driver passes 12 checks, with no skips, including the MCXA
-  supply/voltage variant and the factory-trim-only variant.
-- MCXN947 baseline and MCXA577 runtime images build with ELF and HEX outputs.
-- MCXA577 DPD configuration and application/driver object compilation pass;
-  that image has not been linked or run.
-- The manual and policy-layer sources also pass target-header compilation
-  checks; this is not a claim that their complete images or hardware runs pass.
+This is one internal-flash variant per physical board, not the full
+42-image declared matrix: the two QSPI variants were not run. These results
+apply to the pinned source/configuration pair, including early timer resume
+and the 2048-byte main stack. They do not establish analog accuracy,
+uninterrupted output through low power or current consumption.
