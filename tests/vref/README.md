@@ -20,6 +20,11 @@ Mode and voltage choices survive both a disable/enable cycle and register loss.
 The driver rejects hardware access to a manually suspended device when runtime
 PM is disabled.
 
+The system-PM layers enable `CONFIG_PM_EARLY_SYSTEM_TIMER_RESUME` so the system
+timer runs before VREF's resume callback uses its startup delays. This requires
+a Zephyr revision providing that experimental option. The baseline, device and
+runtime scenarios disable it because they do not enable system PM.
+
 ## Observable evidence
 
 - CSR configuration bits must match the DT options exactly, including options
@@ -93,9 +98,11 @@ From the west workspace:
 
 ```sh
 west build -b frdm_mcxn947/mcxn947/cpu0 zephyr-device-pm-test/tests/vref \
-  -d C:/builds/vref-mcxn-baseline -p always
+  -d C:/builds/vref-mcxn-baseline -p always \
+  -- -DCONFIG_PM_EARLY_SYSTEM_TIMER_RESUME=n
 west build -b frdm_mcxa577 zephyr-device-pm-test/tests/vref \
-  -d C:/builds/vref-mcxa-runtime -p always -S pm-runtime
+  -d C:/builds/vref-mcxa-runtime -p always -S pm-runtime \
+  -- -DCONFIG_PM_EARLY_SYSTEM_TIMER_RESUME=n
 ```
 
 Select any other layer with its `pm-*` snippet. For the system layer also pass

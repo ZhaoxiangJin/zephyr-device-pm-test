@@ -17,13 +17,19 @@ common:
     - frdm_mcxa577
 
 tests:
-  drivers.pm.vref.baseline: {}
+  drivers.pm.vref.baseline:
+    extra_configs:
+      - CONFIG_PM_EARLY_SYSTEM_TIMER_RESUME=n
 
   drivers.pm.vref.device:
+    extra_configs:
+      - CONFIG_PM_EARLY_SYSTEM_TIMER_RESUME=n
     required_snippets:
       - pm-device
 
   drivers.pm.vref.runtime:
+    extra_configs:
+      - CONFIG_PM_EARLY_SYSTEM_TIMER_RESUME=n
     required_snippets:
       - pm-runtime
 
